@@ -15,6 +15,8 @@
  */
 package io.github.pellse.decorator.builder;
 
+import java.util.function.Function;
+
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ClassUtils;
 
@@ -68,13 +70,17 @@ public interface DecoratorBuilder {
 			return commonDelegateType;
 		}
 
+		public <F extends I> ExistingDelegateBuilder<I, F, D> with(Function<D, F> delegateFactory) {
+			return new ExistingDelegateBuilder<>(generateDecorator(), delegateFactory);
+		}
+
 		public <F extends I> ClassDelegateBuilderWithParam<I, F, D> with(Class<F> typeToGenerate) {
-			return new ClassDelegateBuilderWithParam<>(generateDecorator(), typeToGenerate, commonDelegateType);
+			return new ClassDelegateBuilderWithParam<>(generateDecorator(), typeToGenerate, getCommonDelegateType());
 		}
 
 		@SuppressWarnings("unchecked")
 		public DynamicDelegateBuilder<I, I> with(DelegateInvocationHandler delegateHandler) {
-			return new DynamicDelegateBuilder<>((Decorator<I, I>) generateDecorator(), delegateHandler, commonDelegateType, commonDelegateType);
+			return new DynamicDelegateBuilder<>((Decorator<I, I>) generateDecorator(), delegateHandler, getCommonDelegateType(), getCommonDelegateType());
 		}
 
 		public D make() {
@@ -93,6 +99,21 @@ public interface DecoratorBuilder {
 		@Override
 		Decorator<I, T> generateDecorator() {
 			return getDecorator();
+		}
+	}
+
+	public static class ExistingDelegateBuilder<I, D extends I, T extends I> extends DelegateBuilder<I, D, T> {
+
+		private final Function<T, D> delegateFactory;
+
+		ExistingDelegateBuilder(Decorator<I, T> decorator, Function<T, D> delegateFactory) {
+			super(decorator, null, null);
+			this.delegateFactory = delegateFactory;
+		}
+
+		@Override
+		Decorator<I, D> generateDecorator() {
+			return getDecorator().with(delegateFactory);
 		}
 	}
 

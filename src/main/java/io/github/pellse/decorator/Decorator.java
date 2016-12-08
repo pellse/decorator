@@ -16,6 +16,7 @@
 package io.github.pellse.decorator;
 
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
@@ -28,6 +29,7 @@ public interface Decorator<I, T extends I> {
 
 	<D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler);
 	<D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler, Class<D> generatedType);
+	<D extends I> Decorator<I, D> with(Function<T, D> delegateFactory);
 	<D extends I> Decorator<I, D> with(Class<D> generatedType, Object... constructorArgs);
 	<D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes);
 	<D extends I> Decorator<I, D> with(Supplier<D> delegateSupplier);

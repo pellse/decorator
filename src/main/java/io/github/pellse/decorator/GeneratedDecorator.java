@@ -18,6 +18,7 @@ package io.github.pellse.decorator;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
 
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.ClassUtils;
@@ -58,6 +59,10 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	@Override
 	public <D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler, Class<D> generatedType) {
 		return with(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType));
+	}
+
+	public <D extends I> Decorator<I, D> with(Function<T, D> delegateFactory) {
+		return new GeneratedDecorator<>(this, delegateFactory.apply(delegateTarget), commonDelegateType, generator);
 	}
 
 	@Override

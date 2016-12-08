@@ -87,7 +87,7 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			Class<D> delegateClass = (Class<D>) builderFactory.andThen(interceptStrategy).apply(new ByteBuddy())
 				.implement(DelegateProvider.class)
 					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
-				.defineField(DELEGATE_FIELD_NAME, delegateTarget.getClass(), Modifier.PRIVATE)
+				.defineField(DELEGATE_FIELD_NAME, commonDelegateType, Modifier.PRIVATE)
 				.method(isAbstract().and(isGetter(commonDelegateType)))
 					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
 				.make()
