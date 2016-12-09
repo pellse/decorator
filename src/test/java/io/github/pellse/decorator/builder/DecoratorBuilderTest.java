@@ -15,6 +15,7 @@
  */
 package io.github.pellse.decorator.builder;
 
+import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -26,7 +27,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.After;
@@ -82,14 +82,14 @@ public class DecoratorBuilderTest {
 	public void testDecoratorBuilderWithDynamicInvocationHandler() {
 
 		IDirtyList<EmptyClass> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with(SafeList.class)
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with((delegate, method, args) -> method.invoke(delegate, args))
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with(BoundedList.class)
 					.params(50)
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with(new DirtyListInvocationHandler())
 					.as(IDirtyList.class)
 				.make();

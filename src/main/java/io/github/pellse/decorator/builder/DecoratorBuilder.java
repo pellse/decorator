@@ -159,7 +159,7 @@ public interface DecoratorBuilder {
 
 		@SuppressWarnings("unchecked")
 		public <F extends D> DynamicDelegateBuilder<I, F> as(Class<F> typeToGenerate) {
-			this.newTypeToGenerate = typeToGenerate;
+			newTypeToGenerate = typeToGenerate;
 			return (DynamicDelegateBuilder<I, F>) this;
 		}
 

@@ -20,13 +20,13 @@ import java.util.List;
 
 public abstract class BoundedList2<E> extends PartialBoundedList2<E> {
 
-	private List<Integer> uselessListThatShouldntBeInjected;
+	private List<E> uselessListThatShouldntBeInjected;
 
 	public BoundedList2(int maxNbItems) {
 		super(maxNbItems);
 	}
 
-	public List<Integer> getUselessList() {
+	public List<E> getUselessList() {
 		return this.uselessListThatShouldntBeInjected;
 	}
 

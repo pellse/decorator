@@ -15,6 +15,7 @@
  */
 package io.github.pellse.decorator;
 
+import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isAbstract;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
 
 import java.util.function.BiFunction;
@@ -26,7 +27,6 @@ import org.apache.commons.lang3.ClassUtils;
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 import io.github.pellse.decorator.proxy.DelegateGenerator;
 import io.github.pellse.decorator.proxy.bytebuddy.ByteBuddyClassDelegateGenerator;
-import io.github.pellse.decorator.util.reflection.ReflectionUtils;
 import javaslang.control.Option;
 
 public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> {
@@ -75,7 +75,7 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	public <D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
 
 		BiFunction<Class<D>, T, D> instanceCreator = (type, delegateTarget) -> newInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
-		Supplier<D> delegateSupplier = ReflectionUtils.isAbstract(generatedType)
+		Supplier<D> delegateSupplier = isAbstract(generatedType)
 				? () -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator)
 				: () -> instanceCreator.apply(generatedType, delegateTarget);
 

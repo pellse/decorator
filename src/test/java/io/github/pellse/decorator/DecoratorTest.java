@@ -15,6 +15,7 @@
  */
 package io.github.pellse.decorator;
 
+import static java.util.Collections.synchronizedList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -27,7 +28,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -103,11 +103,11 @@ public class DecoratorTest {
 	public void testDecoratorWithOneArgumentConstructor() {
 
 		BoundedList<String> boundedList = Decorator.of(new ArrayList<>(), List.class)
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with(SafeList.class)
 				.with(DirtyList.class)
 				.with(BoundedList.class, 50)
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with(BoundedList.class, new Integer(100))
 				.make();
 
@@ -155,7 +155,7 @@ public class DecoratorTest {
 				.with(new ForwarderInvocationHandler())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(InitializedBoundedList.class)
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.with(new DirtyListInvocationHandler(), IDirtyList.class)
 				.make();
 
@@ -172,11 +172,11 @@ public class DecoratorTest {
 	public void testDecoratorWithDirectInvocation() {
 
 		List<String> list = Decorator.of(new ArrayList<String>(), List.class)
-				.with(delegate -> Collections.synchronizedList(delegate))
-				.with(delegate -> Collections.synchronizedList(delegate))
-				.with(delegate -> Collections.synchronizedList(delegate))
-				.with(delegate -> Collections.synchronizedList(delegate))
-				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList(delegate))
 				.make();
 
 		list.stream().filter(s -> true).map(s -> s);
@@ -223,6 +223,18 @@ public class DecoratorTest {
 		assertEquals(100, value);
 
 		assertEquals(DataInputStream.class, in.getClass());
+	}
+
+	@Test
+	public void testNoDelegateDirect() {
+
+		@SuppressWarnings("unchecked")
+		List<Integer> outputList = Decorator.of(new ArrayList<Integer>(), List.class)
+				.with(SafeList.class)
+				.with(delegate -> synchronizedList(delegate))
+				.make();
+
+		outputList.add(1);
 	}
 
 	@Test
