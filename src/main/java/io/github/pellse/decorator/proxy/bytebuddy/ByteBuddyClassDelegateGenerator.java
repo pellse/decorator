@@ -16,6 +16,7 @@
 package io.github.pellse.decorator.proxy.bytebuddy;
 
 import static io.github.pellse.decorator.util.reflection.Injector.injectField;
+import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isNestedClass;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.setField;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -39,6 +40,7 @@ import net.bytebuddy.dynamic.DynamicType.Builder;
 import net.bytebuddy.dynamic.DynamicType.Builder.MethodDefinition.ReceiverTypeDefinition;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.FieldAccessor;
+import net.bytebuddy.implementation.Forwarding;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
 
 public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> {
@@ -53,11 +55,10 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 		return generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
-				builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))).and(not(isDeclaredBy(Object.class))))
-					.intercept(InvocationHandlerAdapter.of((proxy, method, args) -> method.invoke(delegateTarget, args))),
-
-				//builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))))
-				//	.intercept(Forwarding.to(delegateTarget)),
+				builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))))
+					.intercept(isNestedClass(delegateTarget.getClass())
+							? InvocationHandlerAdapter.of((proxy, method, args) -> method.invoke(delegateTarget, args))
+							: Forwarding.to(delegateTarget)),
 				instanceCreator);
 	}
 
