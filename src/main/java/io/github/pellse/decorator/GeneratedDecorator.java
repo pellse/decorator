@@ -61,7 +61,8 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 		return with(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType));
 	}
 
-	public <D extends I> Decorator<I, D> with(Function<T, D> delegateFactory) {
+	@Override
+	public <D extends I> Decorator<I, D> with(Function<? super T, ? extends D> delegateFactory) {
 		return new GeneratedDecorator<>(this, delegateFactory.apply(delegateTarget), commonDelegateType, generator);
 	}
 

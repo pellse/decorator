@@ -27,7 +27,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import javax.inject.Inject;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -35,7 +38,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.github.pellse.decorator.Decorator;
 import io.github.pellse.decorator.collection.BoundedList;
 import io.github.pellse.decorator.collection.BoundedList2;
 import io.github.pellse.decorator.collection.DirtyList;
@@ -101,13 +103,16 @@ public class DecoratorTest {
 	public void testDecoratorWithOneArgumentConstructor() {
 
 		BoundedList<String> boundedList = Decorator.of(new ArrayList<>(), List.class)
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(SafeList.class)
 				.with(DirtyList.class)
 				.with(BoundedList.class, 50)
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(BoundedList.class, new Integer(100))
 				.make();
 
 		boundedList.add("aaa");
+		boundedList.set(0, "aaa");
 		boolean removed = boundedList.removeIf(s -> s.equals("aaa"));
 
 		assertTrue(removed);
@@ -145,12 +150,33 @@ public class DecoratorTest {
 	@Test
 	public void testDecoratorWithInvocationHandler() {
 
-		IDirtyList<String> list = Decorator.of(new ArrayList<>(), List.class)
+		IDirtyList<String> list = Decorator.of(new ArrayList<String>(), List.class)
 				.with(SafeList.class)
 				.with(new ForwarderInvocationHandler())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(InitializedBoundedList.class)
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(new DirtyListInvocationHandler(), IDirtyList.class)
+				.make();
+
+		//list.stream().filter(s -> true).map(s -> s);
+
+		list.add("aaa");
+		boolean removed = list.removeIf(s -> s.equals("aaa"));
+
+		assertTrue(removed);
+		assertTrue(list.isDirty());
+	}
+
+	@Test
+	public void testDecoratorWithDirectInvocation() {
+
+		List<String> list = Decorator.of(new ArrayList<String>(), List.class)
+				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.make();
 
 		list.stream().filter(s -> true).map(s -> s);
@@ -159,7 +185,6 @@ public class DecoratorTest {
 		boolean removed = list.removeIf(s -> s.equals("aaa"));
 
 		assertTrue(removed);
-		assertTrue(list.isDirty());
 	}
 
 	@Test
@@ -182,11 +207,52 @@ public class DecoratorTest {
 	}
 
 	@Test
+	public void testExistingInputStreamDelegateDirectInvocation() throws Exception {
+
+		ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+		new DataOutputStream(bOut).writeInt(100);
+
+		DataInputStream in = Decorator.of(new ByteArrayInputStream(bOut.toByteArray()), InputStream.class)
+				.with(delegate -> new BufferedInputStream(delegate, 50))
+				.with(new ForwarderInvocationHandler())
+				.with((delegate, method, args) -> method.invoke(delegate, args))
+				.with(delegate -> new DataInputStream(delegate))
+				.make();
+
+		int value = in.readInt();
+		assertEquals(100, value);
+
+		assertEquals(DataInputStream.class, in.getClass());
+	}
+
+	@Test
 	public void testNoDelegateMixin() {
 
 		ArrayList<Integer> inputList = new ArrayList<>();
 		ArrayList<Integer> outputList = Decorator.of(inputList, List.class).make();
 
 		assertTrue(inputList == outputList);
+	}
+
+	@Test
+	public void testDecoratorWithDelegateFromStaticInnerClass() {
+
+		List<String> list = Decorator.of(new ArrayList<String>(), List.class)
+				.with(ListStaticSubclass.class)
+				.make();
+
+		list.add("aaa");
+		assertEquals("aaabbb", list.get(0));
+	}
+
+	static abstract class ListStaticSubclass implements List<String> {
+
+		@Inject
+		List<String> delegate;
+
+		@Override
+		public boolean add(String e) {
+			return delegate.add(e + "bbb");
+		}
 	}
 }

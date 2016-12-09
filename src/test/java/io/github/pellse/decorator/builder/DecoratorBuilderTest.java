@@ -26,6 +26,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.After;
@@ -34,7 +35,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.github.pellse.decorator.builder.DecoratorBuilder;
 import io.github.pellse.decorator.collection.BoundedList;
 import io.github.pellse.decorator.collection.DirtyList;
 import io.github.pellse.decorator.collection.DirtyListInvocationHandler;
@@ -82,10 +82,14 @@ public class DecoratorBuilderTest {
 	public void testDecoratorBuilderWithDynamicInvocationHandler() {
 
 		IDirtyList<EmptyClass> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(SafeList.class)
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with((delegate, method, args) -> method.invoke(delegate, args))
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(BoundedList.class)
 					.params(50)
+				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(new DirtyListInvocationHandler())
 					.as(IDirtyList.class)
 				.make();
@@ -109,6 +113,25 @@ public class DecoratorBuilderTest {
 				.with(new ForwarderInvocationHandler())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(DataInputStream.class)
+				.make();
+
+		int value = in.readInt();
+		assertEquals(100, value);
+
+		assertEquals(DataInputStream.class, in.getClass());
+	}
+
+	@Test
+	public void testExistingInputStreamDelegateDirectInvocation() throws Exception {
+
+		ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+		new DataOutputStream(bOut).writeInt(100);
+
+		DataInputStream in = DecoratorBuilder.of(new ByteArrayInputStream(bOut.toByteArray()), InputStream.class)
+				.with(delegate -> new BufferedInputStream(delegate, 50))
+				.with(new ForwarderInvocationHandler())
+				.with((delegate, method, args) -> method.invoke(delegate, args))
+				.with(delegate -> new DataInputStream(delegate))
 				.make();
 
 		int value = in.readInt();

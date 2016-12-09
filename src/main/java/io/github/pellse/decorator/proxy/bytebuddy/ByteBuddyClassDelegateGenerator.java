@@ -39,7 +39,6 @@ import net.bytebuddy.dynamic.DynamicType.Builder;
 import net.bytebuddy.dynamic.DynamicType.Builder.MethodDefinition.ReceiverTypeDefinition;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.FieldAccessor;
-import net.bytebuddy.implementation.Forwarding;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
 
 public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> {
@@ -54,8 +53,11 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 		return generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
-				builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))))
-					.intercept(Forwarding.to(delegateTarget)),
+				builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))).and(not(isDeclaredBy(Object.class))))
+					.intercept(InvocationHandlerAdapter.of((proxy, method, args) -> method.invoke(delegateTarget, args))),
+
+				//builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))))
+				//	.intercept(Forwarding.to(delegateTarget)),
 				instanceCreator);
 	}
 
@@ -101,31 +103,4 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			return delegate;
 		}).get();
 	}
-
-	/*public <D extends I, T extends I> D generateDelegate(T rootObject, DelegateInvocationHandler<T> handler, Class<D> delegateType, Class<I> superDelegateType) {
-
-		D delegate = ByteBuddyDelegateGenerator.generateDelegate(rootObject,
-				delegateType,
-				superDelegateType,
-				ClassLoadingStrategy.Default.INJECTION,
-				builder -> builder.method(not(isDeclaredBy(Object.class)))
-					.intercept(MethodDelegation.to(new InterceptorHandler<>(rootObject, handler)).appendParameterBinder(Pipe.Binder.install(Function.class))));
-
-		return delegate;
-	}
-
-	public static class InterceptorHandler<T, I> {
-
-		DelegateInvocationHandler<T> handler;
-		private T delegate;
-
-		InterceptorHandler(T delegate, DelegateInvocationHandler<T> handler) {
-			this.delegate = delegate;
-			this.handler = handler;
-		}
-
-		public void intercept(@Pipe Function<T, I> forwarder) {
-			forwarder.apply(delegate);
-		}
-	}*/
 }
