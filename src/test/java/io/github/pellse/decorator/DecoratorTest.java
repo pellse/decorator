@@ -16,6 +16,7 @@
 package io.github.pellse.decorator;
 
 import static java.util.Collections.synchronizedList;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -26,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +48,7 @@ import io.github.pellse.decorator.collection.ForwarderInvocationHandler;
 import io.github.pellse.decorator.collection.IDirtyList;
 import io.github.pellse.decorator.collection.InitializedBoundedList;
 import io.github.pellse.decorator.collection.SafeList;
+import io.github.pellse.decorator.util.DelegateList;
 import io.github.pellse.decorator.util.EmptyClass;
 
 public class DecoratorTest {
@@ -107,7 +110,7 @@ public class DecoratorTest {
 				.with(SafeList.class)
 				.with(DirtyList.class)
 				.with(BoundedList.class, 50)
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList((BoundedList<String>)delegate))
 				.with(BoundedList.class, new Integer(100))
 				.make();
 
@@ -155,7 +158,7 @@ public class DecoratorTest {
 				.with(new ForwarderInvocationHandler())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(InitializedBoundedList.class)
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList((List<String>)delegate))
 				.with(new DirtyListInvocationHandler(), IDirtyList.class)
 				.make();
 
@@ -225,16 +228,32 @@ public class DecoratorTest {
 		assertEquals(DataInputStream.class, in.getClass());
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
-	public void testNoDelegateDirect() {
+	public void testDirectInvocationWithList() {
 
-		@SuppressWarnings("unchecked")
-		List<Integer> outputList = Decorator.of(new ArrayList<Integer>(), List.class)
+		DelegateList<Integer> outputList = Decorator.of(new ArrayList<>(), List.class)
+				.with(delegate -> new DelegateList<>(delegate))
 				.with(SafeList.class)
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> new DelegateList<>((SafeList<Integer>)delegate))
 				.make();
 
 		outputList.add(1);
+	}
+
+	@Test
+	public void testDirectInvocationWithNonGenericDelegate() throws Exception {
+
+		DataInputStream in = Decorator.of(new ByteArrayInputStream(new byte[]{9, 99}), InputStream.class)
+				.with(delegate -> new BufferedInputStream(delegate))
+				.with(AbstractInputStream.class)
+				.with(delegate -> new DataInputStream(delegate))
+				.make();
+
+		byte[] buffer = new byte[2];
+		in.read(buffer);
+
+		assertArrayEquals(new byte[]{10, 100}, buffer);
 	}
 
 	@Test
@@ -246,25 +265,36 @@ public class DecoratorTest {
 		assertTrue(inputList == outputList);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testDecoratorWithDelegateFromStaticInnerClass() {
 
-		List<String> list = Decorator.of(new ArrayList<String>(), List.class)
+		List<String> list = Decorator.of(new ArrayList<>(), List.class)
 				.with(ListStaticSubclass.class)
 				.make();
 
 		list.add("aaa");
-		assertEquals("aaabbb", list.get(0));
+		assertEquals("aaa", list.get(0));
 	}
 
-	static abstract class ListStaticSubclass implements List<String> {
+	static abstract class ListStaticSubclass<E> implements List<E> {
 
 		@Inject
-		List<String> delegate;
+		List<E> delegate;
 
 		@Override
-		public boolean add(String e) {
-			return delegate.add(e + "bbb");
+		public boolean add(E e) {
+			return delegate.add(e);
+		}
+	}
+
+	static abstract class AbstractInputStream extends InputStream {
+
+		abstract InputStream getDelegate();
+
+		@Override
+		public int read() throws IOException {
+			return getDelegate().read() + 1;
 		}
 	}
 }

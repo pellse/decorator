@@ -41,6 +41,7 @@ import io.github.pellse.decorator.collection.DirtyListInvocationHandler;
 import io.github.pellse.decorator.collection.ForwarderInvocationHandler;
 import io.github.pellse.decorator.collection.IDirtyList;
 import io.github.pellse.decorator.collection.SafeList;
+import io.github.pellse.decorator.util.DelegateList;
 import io.github.pellse.decorator.util.EmptyClass;
 
 public class DecoratorBuilderTest {
@@ -82,14 +83,16 @@ public class DecoratorBuilderTest {
 	public void testDecoratorBuilderWithDynamicInvocationHandler() {
 
 		IDirtyList<EmptyClass> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> new DelegateList<>(delegate))
 				.with(SafeList.class)
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> new DelegateList<>((SafeList<EmptyClass>)delegate)) // With Eclipse Compiler no need to cast, it knows it's a SafeList
+																						// even if we lose the generic type of the SafeList
+																						// with javac the type of the delegate param is Object
 				.with((delegate, method, args) -> method.invoke(delegate, args))
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> synchronizedList((List<EmptyClass>)delegate))
 				.with(BoundedList.class)
 					.params(50)
-				.with(delegate -> synchronizedList(delegate))
+				.with(delegate -> new DelegateList<>((List<EmptyClass>)delegate))
 				.with(new DirtyListInvocationHandler())
 					.as(IDirtyList.class)
 				.make();
