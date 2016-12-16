@@ -15,18 +15,19 @@
  */
 package io.github.pellse.decorator.util.reflection;
 
+import static java.util.Arrays.stream;
+import static javaslang.collection.Stream.rangeClosed;
+import static org.apache.commons.lang3.ClassUtils.toClass;
 import static org.apache.commons.lang3.reflect.ConstructorUtils.invokeConstructor;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Optional;
 
 import org.apache.commons.lang3.ClassUtils;
 
 import javaslang.collection.List;
-import javaslang.collection.Stream;
 import javaslang.control.Option;
 import javaslang.control.Try;
 
@@ -38,7 +39,7 @@ public class ReflectionUtils {
 
 		Class<?> targetClass = target.getClass();
 		do {
-			Arrays.stream(targetClass.getDeclaredFields()).forEach(field -> Try.run(() -> field.set(target, field.get(src))).get());
+			stream(targetClass.getDeclaredFields()).forEach(field -> Try.run(() -> field.set(target, field.get(src))).get());
 			targetClass = targetClass.getSuperclass();
 		}
 		while (targetClass != null && targetClass != Object.class);
@@ -53,11 +54,11 @@ public class ReflectionUtils {
 	}
 
 	public static <T, U> T newInstance(Class<T> clazz, U argToInsert, Object... args) {
-		return newInstance(clazz, argToInsert, args, ClassUtils.toClass(args));
+		return newInstance(clazz, argToInsert, args, toClass(args));
 	}
 
 	public static <T, U> T newInstance(Class<T> clazz, U argToInsert, Object[] args, Class<?>[] argTypes) {
-		return Stream.rangeClosed(0, args.length)
+		return rangeClosed(0, args.length)
 			.map(i -> Try.of(() -> invokeConstructor(clazz,
 					List.of(args).insert(i, argToInsert).toJavaArray(),
 					List.of(argTypes).insert(i, argToInsert.getClass()).toJavaList().stream().toArray(Class<?>[]::new))))
@@ -67,7 +68,7 @@ public class ReflectionUtils {
 	}
 
 	public static Class<?>[] wrapperToPrimitives(Class<?>... wrapperClasses) {
-		return Arrays.stream(wrapperClasses)
+		return stream(wrapperClasses)
 			.map(ReflectionUtils::wrapperToPrimitive)
 			.toArray(Class<?>[]::new);
 	}

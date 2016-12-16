@@ -25,20 +25,6 @@ import io.github.pellse.decorator.aop.DelegateInvocationFilter;
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 import javaslang.control.Option;
 
-/*BoundedList<String> boundedList = Decorator.of(new ArrayList<>(), List.class)
-.with(SafeList.class)
-.with(DirtyList.class)
-.with(BoundedList.class)
-	.parameters(50)
-	.parameterTypes(Integer.class)
-	.when((method, args) -> method.getName().contains("add"))
-.with(new DirtyListInvocationHandler())
-	.when(methodNameContains("add", "remove").and(...))
-.with((delegate, method, args) -> method.invoke(delegate, args))
-	.when(...)
-.makeAs(IDirtyList.class);*/
-
-
 public interface DecoratorBuilder {
 
 	@SuppressWarnings("unchecked")

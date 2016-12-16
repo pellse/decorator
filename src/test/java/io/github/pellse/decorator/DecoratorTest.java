@@ -246,7 +246,22 @@ public class DecoratorTest {
 
 		DataInputStream in = Decorator.of(new ByteArrayInputStream(new byte[]{9, 99}), InputStream.class)
 				.with(delegate -> new BufferedInputStream(delegate))
-				.with(AbstractInputStream.class)
+				.with(DelegateInputStream.class)
+				.with(delegate -> new DataInputStream(delegate))
+				.make();
+
+		byte[] buffer = new byte[2];
+		in.read(buffer);
+
+		assertArrayEquals(new byte[]{10, 100}, buffer);
+	}
+
+	@Test
+	public void testDirectInvocationWithNonGenericExistingDelegate() throws Exception {
+
+		DataInputStream in = Decorator.of(new ByteArrayInputStream(new byte[]{9, 99}), InputStream.class)
+				.with(delegate -> new BufferedInputStream(delegate))
+				.with(AbstractDelegateInputStream.class)
 				.with(delegate -> new DataInputStream(delegate))
 				.make();
 
@@ -269,7 +284,7 @@ public class DecoratorTest {
 	@Test
 	public void testDecoratorWithDelegateFromStaticInnerClass() {
 
-		List<String> list = Decorator.of(new ArrayList<>(), List.class)
+		List<CharSequence> list = Decorator.of(new ArrayList<>(), List.class)
 				.with(ListStaticSubclass.class)
 				.make();
 
@@ -277,7 +292,7 @@ public class DecoratorTest {
 		assertEquals("aaa", list.get(0));
 	}
 
-	static abstract class ListStaticSubclass<E> implements List<E> {
+	static abstract class ListStaticSubclass<E extends CharSequence> implements List<E> {
 
 		@Inject
 		List<E> delegate;
@@ -288,13 +303,25 @@ public class DecoratorTest {
 		}
 	}
 
-	static abstract class AbstractInputStream extends InputStream {
+	public static class DelegateInputStream extends InputStream {
 
-		abstract InputStream getDelegate();
+		@Inject
+		InputStream delegate;
 
 		@Override
 		public int read() throws IOException {
-			return getDelegate().read() + 1;
+			return delegate.read() + 1;
+		}
+	}
+
+	public static abstract class AbstractDelegateInputStream extends InputStream {
+
+		@Inject
+		InputStream delegate;
+
+		@Override
+		public int read() throws IOException {
+			return delegate.read() + 1;
 		}
 	}
 }
