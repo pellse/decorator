@@ -8,9 +8,7 @@ repositories {
 
 dependencies {
     
-    compile 'org.slf4j:slf4j-api:1.7.21'
-    compile 'net.bytebuddy:byte-buddy:1.5.7'
-    compile 'com.google.guava:guava:20.0'
+    compile 'net.bytebuddy:byte-buddy:1.5.9'
     compile 'org.reflections:reflections:0.9.10'
     compile 'org.apache.commons:commons-lang3:3.5'
     compile 'io.javaslang:javaslang:2.0.4'
@@ -21,7 +19,6 @@ dependencies {
 }
 
 group = 'io.github.pellse'
-version = '1.0.0-SNAPSHOT'
 
 task javadocJar(type: Jar) {
     classifier = 'javadoc'
