@@ -15,7 +15,6 @@
  */
 package io.github.pellse.decorator.proxy.bytebuddy;
 
-import static io.github.pellse.decorator.util.reflection.Injector.injectField;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isNestedClass;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.setField;
@@ -27,8 +26,6 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import java.lang.reflect.Modifier;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import javax.inject.Inject;
 
 import io.github.pellse.decorator.DelegateProvider;
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
@@ -98,7 +95,6 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 				.getLoaded();
 
 			D delegate = Option.of(instanceCreator).getOrElse((clazz, target) -> newInstance(clazz)).apply(delegateClass, delegateTarget);
-			injectField(delegate, delegateTarget, commonDelegateType, Inject.class, false);
 			setField(delegate, delegate.getClass().getDeclaredField(DELEGATE_FIELD_NAME), delegateTarget);
 
 			return delegate;

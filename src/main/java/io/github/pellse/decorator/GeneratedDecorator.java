@@ -15,14 +15,16 @@
  */
 package io.github.pellse.decorator;
 
+import static io.github.pellse.decorator.util.reflection.Injector.injectField;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isAbstract;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
+import static org.apache.commons.lang3.ClassUtils.toClass;
 
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.commons.lang3.ClassUtils;
+import javax.inject.Inject;
 
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 import io.github.pellse.decorator.proxy.DelegateGenerator;
@@ -68,13 +70,13 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 	@Override
 	public <D extends I> Decorator<I, D> with(Class<D> generatedType, Object... constructorArgs) {
-		return with(generatedType, constructorArgs, ClassUtils.toClass(constructorArgs));
+		return with(generatedType, constructorArgs, toClass(constructorArgs));
 	}
 
 	@Override
 	public <D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
 
-		BiFunction<Class<D>, T, D> instanceCreator = (type, delegateTarget) -> newInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
+		BiFunction<Class<D>, T, D> instanceCreator = (type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
 		Supplier<D> delegateSupplier = isAbstract(generatedType)
 				? () -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator)
 				: () -> instanceCreator.apply(generatedType, delegateTarget);
@@ -90,5 +92,11 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	@Override
 	public T make() {
 		return delegateTarget;
+	}
+
+	private <D extends I> D createInstance(Class<D> type, T delegateTarget, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
+		D instance = newInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
+		injectField(instance, delegateTarget, commonDelegateType, Inject.class, false);
+		return instance;
 	}
 }
