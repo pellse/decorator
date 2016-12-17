@@ -15,12 +15,15 @@
  */
 package io.github.pellse.decorator;
 
+import static java.lang.Runtime.getRuntime;
 import static java.util.Collections.synchronizedList;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -81,8 +84,8 @@ public class DecoratorTest {
 		EmptyClass emptyClass = new EmptyClass();
 		dirtyList.add(emptyClass);
 
-		assertTrue(dirtyList.isDirty());
-		assertFalse(dirtyList.removeIf(s -> s.equals(emptyClass)));
+		assertThat(dirtyList.isDirty(), is(true));
+		assertThat(dirtyList.removeIf(s -> s.equals(emptyClass)), is(false));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -97,8 +100,20 @@ public class DecoratorTest {
 		dirtyList.add("aaa");
 		boolean removed = dirtyList.removeIf(s -> s.equals("aaa"));
 
-		assertTrue(dirtyList.isDirty());
-		assertTrue(removed);
+		assertThat(dirtyList.isDirty(), is(true));
+		assertThat(removed, is(true));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDecoratorIsImplementingDelegateProvider() {
+
+		List<String> list = new ArrayList<>();
+		List<String> decoratorList = Decorator.of(list, List.class)
+				.with(SafeList.class)
+				.make();
+
+		assertThat(((DelegateProvider<List<String>>)decoratorList).getDelegate(), is(equalTo(list)));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -118,7 +133,7 @@ public class DecoratorTest {
 		boundedList.set(0, "aaa");
 		boolean removed = boundedList.removeIf(s -> s.equals("aaa"));
 
-		assertTrue(removed);
+		assertThat(removed, is(true));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -146,7 +161,7 @@ public class DecoratorTest {
 
 		boundedList.add("aaa");
 
-		assertNull(boundedList.getUselessList());
+		assertThat(boundedList.getUselessList(), is(nullValue()));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -162,13 +177,11 @@ public class DecoratorTest {
 				.with(new DirtyListInvocationHandler(), IDirtyList.class)
 				.make();
 
-		//list.stream().filter(s -> true).map(s -> s);
-
 		list.add("aaa");
 		boolean removed = list.removeIf(s -> s.equals("aaa"));
 
-		assertTrue(removed);
-		assertTrue(list.isDirty());
+		assertThat(removed, is(true));
+		assertThat(list.isDirty(), is(true));
 	}
 
 	@Test
@@ -187,7 +200,7 @@ public class DecoratorTest {
 		list.add("aaa");
 		boolean removed = list.removeIf(s -> s.equals("aaa"));
 
-		assertTrue(removed);
+		assertThat(removed, is(true));
 	}
 
 	@Test
@@ -204,9 +217,9 @@ public class DecoratorTest {
 				.make();
 
 		int value = in.readInt();
-		assertEquals(100, value);
 
-		assertEquals(DataInputStream.class, in.getClass());
+		assertThat(value, is(equalTo(100)));
+		assertThat(in, isA(DataInputStream.class));
 	}
 
 	@Test
@@ -223,9 +236,9 @@ public class DecoratorTest {
 				.make();
 
 		int value = in.readInt();
-		assertEquals(100, value);
 
-		assertEquals(DataInputStream.class, in.getClass());
+		assertThat(value, is(equalTo(100)));
+		assertThat(in, isA(DataInputStream.class));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -239,6 +252,7 @@ public class DecoratorTest {
 				.make();
 
 		outputList.add(1);
+		assertThat(outputList.get(0), is(equalTo(1)));
 	}
 
 	@Test
@@ -253,7 +267,7 @@ public class DecoratorTest {
 		byte[] buffer = new byte[2];
 		in.read(buffer);
 
-		assertArrayEquals(new byte[]{10, 100}, buffer);
+		assertThat(buffer, is(equalTo(new byte[]{10, 100})));
 	}
 
 	@Test
@@ -268,7 +282,7 @@ public class DecoratorTest {
 		byte[] buffer = new byte[2];
 		in.read(buffer);
 
-		assertArrayEquals(new byte[]{10, 100}, buffer);
+		assertThat(buffer, is(equalTo(new byte[]{10, 100})));
 	}
 
 	@Test
@@ -277,7 +291,7 @@ public class DecoratorTest {
 		ArrayList<Integer> inputList = new ArrayList<>();
 		ArrayList<Integer> outputList = Decorator.of(inputList, List.class).make();
 
-		assertTrue(inputList == outputList);
+		assertThat(inputList, sameInstance(outputList));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -289,10 +303,36 @@ public class DecoratorTest {
 				.make();
 
 		list.add("aaa");
-		assertEquals("aaa", list.get(0));
+		assertThat(list.get(0), is(equalTo("aaa")));
 	}
 
-	static abstract class ListStaticSubclass<E extends CharSequence> implements List<E> {
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDecoratorGC() throws Exception {
+
+		System.gc();
+		long usedMemoryBefore = getRuntime().totalMemory() - getRuntime().freeMemory();
+
+		for (int i = 0; i < 100; i++) {
+			IDirtyList<String> list = Decorator.of(new ArrayList<String>(), List.class)
+					.with(SafeList.class)
+					.with(new ForwarderInvocationHandler())
+					.with((delegate, method, args) -> method.invoke(delegate, args))
+					.with(InitializedBoundedList.class)
+					.with(delegate -> synchronizedList((List<String>)delegate))
+					.with(new DirtyListInvocationHandler(), IDirtyList.class)
+					.make();
+
+			list.add("aaa");
+		}
+
+		System.gc();
+		long usedMemoryAfter = getRuntime().totalMemory() - getRuntime().freeMemory();
+
+		assertThat(usedMemoryAfter, lessThanOrEqualTo(usedMemoryBefore));
+	}
+
+	public static abstract class ListStaticSubclass<E> implements List<E> {
 
 		@Inject
 		List<E> delegate;

@@ -16,9 +16,11 @@
 package io.github.pellse.decorator.builder;
 
 import static java.util.Collections.synchronizedList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertThat;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -75,7 +77,7 @@ public class DecoratorBuilderTest {
 				.make();
 
 		dirtyList.add("aaa");
-		assertTrue(dirtyList.isDirty());
+		assertThat(dirtyList.isDirty(), is(true));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -100,8 +102,8 @@ public class DecoratorBuilderTest {
 		EmptyClass emptyClass = new EmptyClass();
 		dirtyList.add(emptyClass);
 
-		assertTrue(dirtyList.isDirty());
-		assertFalse(dirtyList.removeIf(s -> s.equals(emptyClass)));
+		assertThat(dirtyList.isDirty(), is(true));
+		assertThat(dirtyList.removeIf(s -> s.equals(emptyClass)), is(false));
 	}
 
 	@Test
@@ -119,9 +121,9 @@ public class DecoratorBuilderTest {
 				.make();
 
 		int value = in.readInt();
-		assertEquals(100, value);
 
-		assertEquals(DataInputStream.class, in.getClass());
+		assertThat(value, is(equalTo(100)));
+		assertThat(in, isA(DataInputStream.class));
 	}
 
 	@Test
@@ -138,9 +140,9 @@ public class DecoratorBuilderTest {
 				.make();
 
 		int value = in.readInt();
-		assertEquals(100, value);
 
-		assertEquals(DataInputStream.class, in.getClass());
+		assertThat(value, is(equalTo(100)));
+		assertThat(in, isA(DataInputStream.class));
 	}
 
 	@Test
@@ -149,6 +151,6 @@ public class DecoratorBuilderTest {
 		ArrayList<Integer> inputList = new ArrayList<>();
 		ArrayList<Integer> outputList = DecoratorBuilder.of(inputList, List.class).make();
 
-		assertTrue(inputList == outputList);
+		assertThat(inputList, sameInstance(outputList));
 	}
 }
