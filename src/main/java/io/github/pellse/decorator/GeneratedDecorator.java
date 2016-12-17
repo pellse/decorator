@@ -36,21 +36,29 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	private final T delegateTarget;
 	private final Class<I> commonDelegateType;
 	private final DelegateGenerator<I> generator;
+	private final ClassLoader classLoader;
+
+	public GeneratedDecorator(T delegate, Class<I> commonDelegateType, DelegateGenerator<I> delegateGeneratorFactory) {
+		this(delegate, commonDelegateType, delegateGeneratorFactory, GeneratedDecorator.class.getClassLoader());
+	}
 
 	public GeneratedDecorator(T delegate,
 			Class<I> commonDelegateType,
-			DelegateGenerator<I> delegateGeneratorFactory) {
-		this(null, delegate, commonDelegateType, delegateGeneratorFactory);
+			DelegateGenerator<I> delegateGeneratorFactory,
+			ClassLoader classLoader) {
+		this(null, delegate, commonDelegateType, delegateGeneratorFactory, classLoader);
 	}
 
 	public GeneratedDecorator(Decorator<I, ? extends I> next,
 			T delegateTarget,
 			Class<I> commonDelegateType,
-			DelegateGenerator<I> generator) {
+			DelegateGenerator<I> generator,
+			ClassLoader classLoader) {
 		super(next);
 		this.delegateTarget = delegateTarget;
 		this.commonDelegateType = commonDelegateType;
 		this.generator = Option.of(generator).getOrElse(ByteBuddyClassDelegateGenerator<I>::new);
+		this.classLoader = classLoader;
 	}
 
 	@Override
@@ -60,12 +68,12 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 	@Override
 	public <D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler, Class<D> generatedType) {
-		return with(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType));
+		return with(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType, classLoader));
 	}
 
 	@Override
 	public <D extends I> Decorator<I, D> with(Function<? super T, ? extends D> delegateFactory) {
-		return new GeneratedDecorator<>(this, delegateFactory.apply(delegateTarget), commonDelegateType, generator);
+		return new GeneratedDecorator<>(this, delegateFactory.apply(delegateTarget), commonDelegateType, generator, classLoader);
 	}
 
 	@Override
@@ -78,7 +86,7 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 		BiFunction<Class<D>, T, D> instanceCreator = (type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
 		Supplier<D> delegateSupplier = isAbstract(generatedType)
-				? () -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator)
+				? () -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator, classLoader)
 				: () -> instanceCreator.apply(generatedType, delegateTarget);
 
 		return with(delegateSupplier);
@@ -86,7 +94,7 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 	@Override
 	public <D extends I> Decorator<I, D> with(Supplier<D> delegateSupplier) {
-		return new GeneratedDecorator<>(this, delegateSupplier.get(), commonDelegateType, generator);
+		return new GeneratedDecorator<>(this, delegateSupplier.get(), commonDelegateType, generator, classLoader);
 	}
 
 	@Override

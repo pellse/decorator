@@ -48,7 +48,8 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 	public <D extends I, T extends I> D generateDelegate(T delegateTarget,
 			Class<D> generatedType,
 			Class<I> commonDelegateType,
-			BiFunction<Class<D>, T, D> instanceCreator) {
+			BiFunction<Class<D>, T, D> instanceCreator,
+			ClassLoader classLoader) {
 		return generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
@@ -56,20 +57,23 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 					.intercept(isNestedClass(delegateTarget.getClass())
 							? InvocationHandlerAdapter.of((proxy, method, args) -> method.invoke(delegateTarget, args))
 							: Forwarding.to(delegateTarget)),
-				instanceCreator);
+				instanceCreator,
+				classLoader);
 	}
 
 	@Override
 	public <D extends I, T extends I> D generateDelegate(T delegateTarget,
 			DelegateInvocationHandler handler,
 			Class<D> generatedType,
-			Class<I> commonDelegateType) {
+			Class<I> commonDelegateType,
+			ClassLoader classLoader) {
 		return generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
 				builder -> builder.method(not(isDeclaredBy(Object.class)))
 					.intercept(InvocationHandlerAdapter.of((proxy, method, args) -> handler.invoke(delegateTarget, method, args))),
-				null);
+				null,
+				classLoader);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -77,7 +81,8 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			Class<D> generatedType,
 			Class<I> commonDelegateType,
 			Function<Builder<?>, ReceiverTypeDefinition<?>> interceptStrategy,
-			BiFunction<Class<D>, T, D> instanceCreator) {
+			BiFunction<Class<D>, T, D> instanceCreator,
+			ClassLoader classLoader) {
 
 		Function<ByteBuddy, Builder<?>> builderFactory = byteBuddy -> generatedType.isInterface() ?
 				byteBuddy.subclass(Object.class).implement(generatedType) :
@@ -91,7 +96,7 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 				.method(isAbstract().and(isGetter(commonDelegateType)))
 					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
 				.make()
-				.load(ClassLoader.getSystemClassLoader(), ClassLoadingStrategy.Default.INJECTION)
+				.load(Option.of(classLoader).getOrElse(ByteBuddyClassDelegateGenerator.class.getClassLoader()), ClassLoadingStrategy.Default.INJECTION)
 				.getLoaded();
 
 			D delegate = Option.of(instanceCreator).getOrElse((clazz, target) -> newInstance(clazz)).apply(delegateClass, delegateTarget);

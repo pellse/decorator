@@ -41,6 +41,14 @@ public interface Decorator<I, T extends I> {
 	}
 
 	static <I, T extends I> Decorator<I, T> of(T rootObject, Class<I> delegateInterface, DelegateGenerator<I> generator) {
-		return new GeneratedDecorator<>(rootObject, delegateInterface, generator);
+		return of(rootObject, delegateInterface, generator, new ClassLoader(Decorator.class.getClassLoader()){});
+	}
+
+	static <I, T extends I> Decorator<I, T> of(T rootObject, Class<I> delegateInterface, ClassLoader classLoader) {
+		return of(rootObject, delegateInterface, new ByteBuddyClassDelegateGenerator<>(), classLoader);
+	}
+
+	static <I, T extends I> Decorator<I, T> of(T rootObject, Class<I> delegateInterface, DelegateGenerator<I> generator, ClassLoader classLoader) {
+		return new GeneratedDecorator<>(rootObject, delegateInterface, generator, classLoader);
 	}
 }
