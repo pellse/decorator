@@ -15,7 +15,7 @@
  */
 package io.github.pellse.decorator.proxy.bytebuddy;
 
-import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isNestedClass;
+import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isAbstract;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.setField;
 import static net.bytebuddy.matcher.ElementMatchers.isAbstract;
@@ -37,8 +37,11 @@ import net.bytebuddy.dynamic.DynamicType.Builder;
 import net.bytebuddy.dynamic.DynamicType.Builder.MethodDefinition.ReceiverTypeDefinition;
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.FieldAccessor;
-import net.bytebuddy.implementation.Forwarding;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
+import net.bytebuddy.implementation.MethodDelegation;
+import net.bytebuddy.implementation.bind.annotation.FieldValue;
+import net.bytebuddy.implementation.bind.annotation.Pipe;
+import net.bytebuddy.implementation.bind.annotation.RuntimeType;
 
 public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> {
 
@@ -50,15 +53,21 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			Class<I> commonDelegateType,
 			BiFunction<Class<D>, T, D> instanceCreator,
 			ClassLoader classLoader) {
-		return generateDelegate(delegateTarget,
+
+		D generatedInstance = !isAbstract(generatedType)
+			? instanceCreator.apply(generatedType, delegateTarget)
+			: generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
 				builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))))
-					.intercept(isNestedClass(delegateTarget.getClass())
-							? InvocationHandlerAdapter.of((proxy, method, args) -> method.invoke(delegateTarget, args))
-							: Forwarding.to(delegateTarget)),
+					.intercept(MethodDelegation.to(Interceptor.class).appendParameterBinder(Pipe.Binder.install(Function.class))),
 				instanceCreator,
 				classLoader);
+
+		if (generatedInstance.getClass() != generatedType)
+			setField(generatedInstance, Try.of(() -> generatedInstance.getClass().getDeclaredField(DELEGATE_FIELD_NAME)).get(), delegateTarget);
+
+		return generatedInstance;
 	}
 
 	@Override
@@ -72,7 +81,7 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 				commonDelegateType,
 				builder -> builder.method(not(isDeclaredBy(Object.class)))
 					.intercept(InvocationHandlerAdapter.of((proxy, method, args) -> handler.invoke(delegateTarget, method, args))),
-				null,
+				(clazz, target) -> newInstance(clazz),
 				classLoader);
 	}
 
@@ -90,19 +99,23 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 
 		return Try.of(() -> {
 			Class<D> delegateClass = (Class<D>) builderFactory.andThen(interceptStrategy).apply(new ByteBuddy())
-				.implement(DelegateProvider.class)
-					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
 				.defineField(DELEGATE_FIELD_NAME, commonDelegateType, Modifier.PRIVATE)
+				.implement(DelegateProvider.class)
 				.method(isAbstract().and(isGetter(commonDelegateType)))
 					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
 				.make()
 				.load(Option.of(classLoader).getOrElse(ByteBuddyClassDelegateGenerator.class.getClassLoader()), ClassLoadingStrategy.Default.INJECTION)
 				.getLoaded();
 
-			D delegate = Option.of(instanceCreator).getOrElse((clazz, target) -> newInstance(clazz)).apply(delegateClass, delegateTarget);
-			setField(delegate, delegate.getClass().getDeclaredField(DELEGATE_FIELD_NAME), delegateTarget);
-
-			return delegate;
+			return instanceCreator.apply(delegateClass, delegateTarget);
 		}).get();
+	}
+
+	public static class Interceptor {
+
+        @RuntimeType
+        public static Object intercept(@Pipe Function<Object, Object> pipe, @FieldValue(DELEGATE_FIELD_NAME) Object delegate) {
+        	return pipe.apply(delegate);
+        }
 	}
 }

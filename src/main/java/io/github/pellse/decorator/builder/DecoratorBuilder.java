@@ -15,10 +15,11 @@
  */
 package io.github.pellse.decorator.builder;
 
+import static org.apache.commons.lang3.ClassUtils.toClass;
+
 import java.util.function.Function;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.ClassUtils;
 
 import io.github.pellse.decorator.Decorator;
 import io.github.pellse.decorator.aop.DelegateInvocationFilter;
@@ -125,7 +126,7 @@ public interface DecoratorBuilder {
 
 		@Override
 		Decorator<I, D> generateDecorator() {
-			return getDecorator().with(getTypeToGenerate(), parameters, Option.of(parameterTypes).getOrElse(() -> ClassUtils.toClass(parameters)));
+			return getDecorator().with(getTypeToGenerate(), parameters, Option.of(parameterTypes).getOrElse(() -> toClass(parameters)));
 		}
 	}
 

@@ -78,11 +78,12 @@ public class ReflectionUtils {
 		return Option.of((Class<T>)ClassUtils.wrapperToPrimitive(wrapperClass)).getOrElse(wrapperClass);
 	}
 
-	public static void setField(Object obj, Field field, Object value) {
+	public static <T> T setField(T obj, Field field, Object value) {
 		Try.run(() -> {
 			field.setAccessible(true);
 			field.set(obj, value);
 		});
+		return obj;
 	}
 
 	public static Optional<Object> getField(Object obj, Field field) {
@@ -93,11 +94,19 @@ public class ReflectionUtils {
 				}).get());
 	}
 
-	public static void invoke(Object obj, Method method, Object... args) {
-		Try.run(() -> {
+	public static Object invoke(Object obj, String methodName, Object... args) {
+		return Try.of(() -> {
+			Method method = obj.getClass().getMethod(methodName, toClass(args));
 			method.setAccessible(true);
-			method.invoke(obj, args);
-		});
+			return method.invoke(obj, args);
+		}).get();
+	}
+
+	public static Object invoke(Object obj, Method method, Object... args) {
+		return Try.of(() -> {
+			method.setAccessible(true);
+			return method.invoke(obj, args);
+		}).get();
 	}
 
 	public static boolean isAbstract(Class<?> clazz) {

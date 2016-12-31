@@ -16,7 +16,6 @@
 package io.github.pellse.decorator;
 
 import static io.github.pellse.decorator.util.reflection.Injector.injectField;
-import static io.github.pellse.decorator.util.reflection.ReflectionUtils.isAbstract;
 import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
 import static org.apache.commons.lang3.ClassUtils.toClass;
 
@@ -85,11 +84,7 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	public <D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
 
 		BiFunction<Class<D>, T, D> instanceCreator = (type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
-		Supplier<D> delegateSupplier = isAbstract(generatedType)
-				? () -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator, classLoader)
-				: () -> instanceCreator.apply(generatedType, delegateTarget);
-
-		return with(delegateSupplier);
+		return with(() -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator, classLoader));
 	}
 
 	@Override
