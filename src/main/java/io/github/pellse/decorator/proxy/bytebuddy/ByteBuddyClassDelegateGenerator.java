@@ -41,10 +41,7 @@ import net.bytebuddy.dynamic.DynamicType.Builder.MethodDefinition.ReceiverTypeDe
 import net.bytebuddy.dynamic.loading.ClassLoadingStrategy;
 import net.bytebuddy.implementation.FieldAccessor;
 import net.bytebuddy.implementation.InvocationHandlerAdapter;
-import net.bytebuddy.implementation.MethodDelegation;
-import net.bytebuddy.implementation.bind.annotation.FieldValue;
-import net.bytebuddy.implementation.bind.annotation.Pipe;
-import net.bytebuddy.implementation.bind.annotation.RuntimeType;
+import net.bytebuddy.implementation.MethodCall;
 
 public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> {
 
@@ -60,16 +57,16 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			BiFunction<Class<D>, T, D> instanceCreator,
 			ClassLoader classLoader) {
 
-		Function<? super Class<?>, ? extends Class<?>> classGenerator = clazz -> !isAbstract(clazz)
-				? clazz
-				: generateDelegate(delegateTarget,
+		Function<? super Class<?>, ? extends Class<?>> classGenerator = clazz -> generateDelegate(delegateTarget,
 					(Class<D>) clazz,
 					commonDelegateType,
-					builder -> builder.method(isAbstract().and(not(isGetter(commonDelegateType))))
-						.intercept(MethodDelegation.to(Interceptor.class).appendParameterBinder(Pipe.Binder.install(Function.class))),
+					builder -> builder.method(isAbstract().and(not(isDeclaredBy(DelegateProvider.class))))
+						.intercept(MethodCall.invokeSelf().onField(DELEGATE_FIELD_NAME).withAllArguments()),
 					classLoader);
 
-		D generatedInstance = instanceCreator.apply((Class<D>) CACHE.computeIfAbsent(generatedType, classGenerator), delegateTarget);
+		D generatedInstance = instanceCreator.apply(
+			isAbstract(generatedType) ? (Class<D>) CACHE.computeIfAbsent(generatedType, classGenerator) : generatedType,
+			delegateTarget);
 
 		if (generatedInstance.getClass() != generatedType)
 			setField(generatedInstance, Try.of(() -> generatedInstance.getClass().getDeclaredField(DELEGATE_FIELD_NAME)).get(), delegateTarget);
@@ -114,13 +111,5 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 				.load(Option.of(classLoader).getOrElse(ByteBuddyClassDelegateGenerator.class.getClassLoader()), ClassLoadingStrategy.Default.INJECTION)
 				.getLoaded();
 		}).get();
-	}
-
-	public static class Interceptor {
-
-        @RuntimeType
-        public static Object intercept(@Pipe Function<Object, Object> pipe, @FieldValue(DELEGATE_FIELD_NAME) Object delegate) {
-        	return pipe.apply(delegate);
-        }
 	}
 }
