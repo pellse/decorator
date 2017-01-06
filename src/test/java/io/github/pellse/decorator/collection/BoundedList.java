@@ -26,12 +26,12 @@ public abstract class BoundedList<E> extends PartialBoundedList<E> {
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		checkSize(c.size());
-		return getDelegate().addAll(c);
+		return getDelegateList().addAll(c);
 	}
 
 	@Override
 	public boolean addAll(int index, Collection<? extends E> c) {
 		checkSize(c.size());
-		return getDelegate().addAll(index, c);
+		return getDelegateList().addAll(index, c);
 	}
 }

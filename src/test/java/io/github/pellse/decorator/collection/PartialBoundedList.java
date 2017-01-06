@@ -19,7 +19,7 @@ public abstract class PartialBoundedList<E> implements List<E> {
 
 	private final int maxNbItems;
 
-	protected abstract List<E> getDelegate();
+	protected abstract List<E> getDelegateList(); // Doesn't need to be getDelegate() from DelegateProvider
 
 	public PartialBoundedList(int maxNbItems) {
 		this.maxNbItems = maxNbItems;
@@ -28,17 +28,17 @@ public abstract class PartialBoundedList<E> implements List<E> {
 	@Override
 	public boolean add(E e) {
 		checkSize(1);
-		return getDelegate().add(e);
+		return getDelegateList().add(e);
 	}
 
 	@Override
 	public void add(int index, E element) {
 		checkSize(1);
-		getDelegate().add(index, element);
+		getDelegateList().add(index, element);
 	}
 
 	protected void checkSize(int addCount) {
-		if (getDelegate().size() + addCount >= maxNbItems)
-			throw new IllegalStateException("Size of list (" + getDelegate().size() + ") greater than maxNbItems (" + maxNbItems + ")");
+		if (getDelegateList().size() + addCount >= maxNbItems)
+			throw new IllegalStateException("Size of list (" + getDelegateList().size() + ") greater than maxNbItems (" + maxNbItems + ")");
 	}
 }

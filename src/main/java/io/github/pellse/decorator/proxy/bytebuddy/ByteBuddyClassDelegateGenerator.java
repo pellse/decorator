@@ -105,7 +105,7 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			return (Class<D>) builderFactory.andThen(interceptStrategy).apply(new ByteBuddy())
 				.defineField(DELEGATE_FIELD_NAME, commonDelegateType, Modifier.PRIVATE)
 				.implement(DelegateProvider.class)
-				.method(isAbstract().and(isGetter(commonDelegateType)))
+				.method(isAbstract().and(isGetter(commonDelegateType).or(isDeclaredBy(DelegateProvider.class))))
 					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
 				.make()
 				.load(Option.of(classLoader).getOrElse(ByteBuddyClassDelegateGenerator.class.getClassLoader()), ClassLoadingStrategy.Default.INJECTION)
