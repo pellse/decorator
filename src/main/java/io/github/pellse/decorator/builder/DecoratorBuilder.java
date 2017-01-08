@@ -93,9 +93,8 @@ public interface DecoratorBuilder {
 
 		private final Function<T, D> delegateFactory;
 
-		@SuppressWarnings("unchecked")
 		ExistingDelegateBuilder(Decorator<I, T> decorator, Class<I> commonDelegateType, Function<T, D> delegateFactory) {
-			super(decorator, (Class<D>)commonDelegateType, commonDelegateType);
+			super(decorator, null, commonDelegateType);
 			this.delegateFactory = delegateFactory;
 		}
 
