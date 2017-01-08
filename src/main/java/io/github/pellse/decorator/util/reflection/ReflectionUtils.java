@@ -110,8 +110,7 @@ public class ReflectionUtils {
 	}
 
 	public static boolean isAbstract(Class<?> clazz) {
-		boolean isAbstract = clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers());
-		return isAbstract;
+		return clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers());
 	}
 
 	public static boolean isNestedClass(Class<?> clazz) {
