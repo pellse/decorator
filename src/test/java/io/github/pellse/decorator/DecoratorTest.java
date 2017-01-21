@@ -260,11 +260,11 @@ public class DecoratorTest {
 
 		IDirtyList<String> list = Decorator.of(new ArrayList<>(), List.class)
 				.with(SafeList.class)
-				.with(new ForwarderInvocationHandler())
+				.with(new ForwarderInvocationHandler<>())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(InitializedBoundedList.class)
 				.with(delegate -> synchronizedList((List<String>)delegate))
-				.with(new DirtyListInvocationHandler(), IDirtyList.class)
+				.with(new DirtyListInvocationHandler<>(), IDirtyList.class)
 				.make();
 
 		list.add("aaa");
@@ -304,7 +304,7 @@ public class DecoratorTest {
 
 		DataInputStream in = Decorator.of(new ByteArrayInputStream(bOut.toByteArray()), InputStream.class)
 				.with(BufferedInputStream.class, 50)
-				.with(new ForwarderInvocationHandler())
+				.with(new ForwarderInvocationHandler<>())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(DataInputStream.class)
 				.make();
@@ -323,7 +323,7 @@ public class DecoratorTest {
 
 		DataInputStream in = Decorator.of(new ByteArrayInputStream(bOut.toByteArray()), InputStream.class)
 				.with(delegate -> new BufferedInputStream(delegate, 50))
-				.with(new ForwarderInvocationHandler())
+				.with(new ForwarderInvocationHandler<>())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(delegate -> new DataInputStream(delegate))
 				.make();

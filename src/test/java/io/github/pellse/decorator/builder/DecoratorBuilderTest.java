@@ -95,7 +95,7 @@ public class DecoratorBuilderTest {
 				.with(BoundedList.class)
 					.params(50)
 				.with(delegate -> new DelegateList<>((List<EmptyClass>)delegate))
-				.with(new DirtyListInvocationHandler())
+				.with(new DirtyListInvocationHandler<>())
 					.as(IDirtyList.class)
 				.make();
 
@@ -115,7 +115,7 @@ public class DecoratorBuilderTest {
 		DataInputStream in = DecoratorBuilder.of(new ByteArrayInputStream(bOut.toByteArray()), InputStream.class)
 				.with(BufferedInputStream.class)
 					.params(50)
-				.with(new ForwarderInvocationHandler())
+				.with(new ForwarderInvocationHandler<>())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(DataInputStream.class)
 				.make();
@@ -134,7 +134,7 @@ public class DecoratorBuilderTest {
 
 		DataInputStream in = DecoratorBuilder.of(new ByteArrayInputStream(bOut.toByteArray()), InputStream.class)
 				.with(delegate -> new BufferedInputStream(delegate, 50))
-				.with(new ForwarderInvocationHandler())
+				.with(new ForwarderInvocationHandler<>())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(delegate -> new DataInputStream(delegate))
 				.make();

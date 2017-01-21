@@ -66,7 +66,7 @@ public interface DecoratorBuilder {
 		}
 
 		@SuppressWarnings("unchecked")
-		public DynamicDelegateBuilder<I, I> with(DelegateInvocationHandler delegateHandler) {
+		public DynamicDelegateBuilder<I, I> with(DelegateInvocationHandler<I> delegateHandler) {
 			return new DynamicDelegateBuilder<>((Decorator<I, I>) generateDecorator(), delegateHandler, getCommonDelegateType(), getCommonDelegateType());
 		}
 
@@ -131,10 +131,10 @@ public interface DecoratorBuilder {
 
 	public static class DynamicDelegateBuilder<I, D extends I> extends DelegateBuilder<I, D, I> {
 
-		private final DelegateInvocationHandler delegateHandler;
+		private final DelegateInvocationHandler<I> delegateHandler;
 		private Class<? extends D> newTypeToGenerate;
 
-		DynamicDelegateBuilder(Decorator<I, I> decorator, DelegateInvocationHandler delegateHandler, Class<D> typeToGenerate, Class<I> commonDelegateType) {
+		DynamicDelegateBuilder(Decorator<I, I> decorator, DelegateInvocationHandler<I> delegateHandler, Class<D> typeToGenerate, Class<I> commonDelegateType) {
 			super(decorator, typeToGenerate, commonDelegateType);
 			this.delegateHandler = delegateHandler;
 		}

@@ -67,12 +67,12 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	}
 
 	@Override
-	public Decorator<I, I> with(DelegateInvocationHandler delegateHandler) {
+	public Decorator<I, I> with(DelegateInvocationHandler<I> delegateHandler) {
 		return with(delegateHandler, commonDelegateType);
 	}
 
 	@Override
-	public <D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler, Class<D> generatedType) {
+	public <D extends I> Decorator<I, D> with(DelegateInvocationHandler<I> delegateHandler, Class<D> generatedType) {
 		return with(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType, classLoader));
 	}
 

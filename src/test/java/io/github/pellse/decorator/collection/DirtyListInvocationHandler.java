@@ -20,23 +20,23 @@ import java.util.Arrays;
 
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 
-public class DirtyListInvocationHandler implements DelegateInvocationHandler {
-	
+public class DirtyListInvocationHandler<T> implements DelegateInvocationHandler<T> {
+
 	private boolean isDirty;
-	
+
 	public boolean isDirty() {
 		return isDirty;
 	}
 
 	@Override
-	public Object invoke(Object delegate, Method method, Object[] args) throws Throwable {
+	public Object invoke(T delegate, Method method, Object[] args) throws Throwable {
 		if (Arrays.asList("add", "remove", "set", "clear", "retain").stream()
 				.anyMatch(s -> method.getName().contains(s)))
 			isDirty = true;
-		
+
 		if (method.getName().equals("isDirty"))
 			return isDirty;
-		
+
 		return method.invoke(delegate, args);
 	}
 }

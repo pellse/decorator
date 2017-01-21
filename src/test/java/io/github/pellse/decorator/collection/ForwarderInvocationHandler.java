@@ -19,10 +19,10 @@ import java.lang.reflect.Method;
 
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 
-public class ForwarderInvocationHandler implements DelegateInvocationHandler {
+public class ForwarderInvocationHandler<T> implements DelegateInvocationHandler<T> {
 
 	@Override
-	public Object invoke(Object delegate, Method method, Object[] args) throws Throwable {
+	public Object invoke(T delegate, Method method, Object[] args) throws Throwable {
 		return method.invoke(delegate, args);
 	}
 }

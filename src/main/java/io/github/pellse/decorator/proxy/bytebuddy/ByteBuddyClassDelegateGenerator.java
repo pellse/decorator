@@ -79,7 +79,7 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 	@SuppressWarnings("unchecked")
 	@Override
 	public <D extends I, T extends I> D generateDelegate(T delegateTarget,
-			DelegateInvocationHandler handler,
+			DelegateInvocationHandler<I> handler,
 			Class<D> generatedType,
 			Class<I> commonDelegateType,
 			ClassLoader classLoader) {

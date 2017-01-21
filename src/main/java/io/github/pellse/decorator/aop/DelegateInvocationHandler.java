@@ -18,6 +18,6 @@ package io.github.pellse.decorator.aop;
 import java.lang.reflect.Method;
 
 @FunctionalInterface
-public interface DelegateInvocationHandler {
-	Object invoke(Object delegate, Method method, Object[] args) throws Throwable;
+public interface DelegateInvocationHandler<T> {
+	Object invoke(T delegate, Method method, Object[] args) throws Throwable;
 }

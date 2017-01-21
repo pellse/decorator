@@ -27,8 +27,8 @@ public interface Decorator<I, T extends I> {
 
 	Optional<Decorator<I, ? extends I>> next();
 
-	<D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler);
-	<D extends I> Decorator<I, D> with(DelegateInvocationHandler delegateHandler, Class<D> generatedType);
+	Decorator<I, I> with(DelegateInvocationHandler<I> delegateHandler);
+	<D extends I> Decorator<I, D> with(DelegateInvocationHandler<I> delegateHandler, Class<D> generatedType);
 	<D extends I> Decorator<I, D> with(Function<? super T, ? extends D> delegateFactory);
 	<D extends I> Decorator<I, D> with(Class<D> generatedType, Object... constructorArgs);
 	<D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes);

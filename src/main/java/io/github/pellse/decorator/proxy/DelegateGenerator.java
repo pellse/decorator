@@ -22,5 +22,5 @@ import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 public interface DelegateGenerator<I> {
 
 	<D extends I, T extends I> D generateDelegate(T rootObject, Class<D> generatedType, Class<I> commonDelegateType, BiFunction<Class<D>, T, D> instanceCreator, ClassLoader classLoader);
-	<D extends I, T extends I> D generateDelegate(T rootObject, DelegateInvocationHandler handler, Class<D> generatedType, Class<I> commonDelegateType, ClassLoader classLoader);
+	<D extends I, T extends I> D generateDelegate(T rootObject, DelegateInvocationHandler<I> handler, Class<D> generatedType, Class<I> commonDelegateType, ClassLoader classLoader);
 }
