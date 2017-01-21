@@ -24,7 +24,8 @@ import static net.bytebuddy.matcher.ElementMatchers.isGetter;
 import static net.bytebuddy.matcher.ElementMatchers.not;
 
 import java.lang.reflect.Modifier;
-import java.util.concurrent.ConcurrentMap;
+import java.lang.reflect.Proxy;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -47,7 +48,8 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 
 	private static final String DELEGATE_FIELD_NAME = "delegate";
 
-	private static final ConcurrentMap<Class<?>, Class<?>> CACHE = new NonBlockingHashMap<>();
+	// TODO: Composite key ClassLoader/GeneratedType
+	private static final Map<Class<?>, Class<?>> CACHE = new NonBlockingHashMap<>();
 
 	@SuppressWarnings("unchecked")
 	@Override
@@ -74,12 +76,20 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 		return generatedInstance;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public <D extends I, T extends I> D generateDelegate(T delegateTarget,
 			DelegateInvocationHandler handler,
 			Class<D> generatedType,
 			Class<I> commonDelegateType,
 			ClassLoader classLoader) {
+
+		if (generatedType.isInterface())
+			return (D)Proxy.newProxyInstance(
+				classLoader,
+				new Class<?>[] {generatedType},
+				(proxy, method, args) -> handler.invoke(delegateTarget, method, args));
+
 		Class<D> delegateClass = generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
