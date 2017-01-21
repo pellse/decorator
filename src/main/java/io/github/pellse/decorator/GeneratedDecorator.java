@@ -15,22 +15,28 @@
  */
 package io.github.pellse.decorator;
 
-import static io.github.pellse.decorator.util.reflection.Injector.injectField;
-import static io.github.pellse.decorator.util.reflection.ReflectionUtils.newInstance;
+import static io.github.pellse.decorator.util.reflection.ReflectionUtils.findDelegateInstantiationInfo;
+import static io.github.pellse.decorator.util.reflection.ReflectionUtils.setFields;
 import static org.apache.commons.lang3.ClassUtils.toClass;
 
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.inject.Inject;
+import org.jctools.maps.NonBlockingHashMap;
 
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 import io.github.pellse.decorator.proxy.DelegateGenerator;
 import io.github.pellse.decorator.proxy.bytebuddy.ByteBuddyClassDelegateGenerator;
+import io.github.pellse.decorator.util.reflection.DelegateInstantiationInfo;
+import javaslang.collection.List;
 import javaslang.control.Option;
+import javaslang.control.Try;
 
 public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> {
+
+	private static final Map<Class<?>, DelegateInstantiationInfo> CACHE = new NonBlockingHashMap<>();
 
 	private final T delegateTarget;
 	private final Class<I> commonDelegateType;
@@ -97,9 +103,19 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 		return delegateTarget;
 	}
 
+	@SuppressWarnings("unchecked")
 	private <D extends I> D createInstance(Class<D> type, T delegateTarget, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
-		D instance = newInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
-		injectField(instance, delegateTarget, commonDelegateType, Inject.class, false);
+
+		DelegateInstantiationInfo delegateInstantiationInfo = CACHE.computeIfAbsent(type,
+				clazz -> findDelegateInstantiationInfo(clazz, commonDelegateType, constructorArgTypes));
+
+		Object[] args = delegateInstantiationInfo.getParameterToInsertIndex() > -1
+				? List.of(constructorArgs).insert(delegateInstantiationInfo.getParameterToInsertIndex(), delegateTarget).toJavaArray()
+				: constructorArgs;
+
+		D instance = (D) Try.of(() -> delegateInstantiationInfo.getConstructor().newInstance(args)).get();
+		setFields(instance, delegateInstantiationInfo.getInjectableFields(), delegateTarget, false);
+
 		return instance;
 	}
 }

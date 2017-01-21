@@ -18,14 +18,25 @@ package io.github.pellse.decorator.util.reflection;
 import static java.util.Arrays.stream;
 import static javaslang.collection.Stream.rangeClosed;
 import static org.apache.commons.lang3.ClassUtils.toClass;
+import static org.apache.commons.lang3.reflect.ConstructorUtils.getMatchingAccessibleConstructor;
 import static org.apache.commons.lang3.reflect.ConstructorUtils.invokeConstructor;
+import static org.reflections.ReflectionUtils.getAllFields;
+import static org.reflections.ReflectionUtils.withAnnotation;
+import static org.reflections.ReflectionUtils.withTypeAssignableTo;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
+
+import javax.inject.Inject;
 
 import org.apache.commons.lang3.ClassUtils;
+
+import com.google.common.base.Predicate;
 
 import javaslang.collection.List;
 import javaslang.control.Option;
@@ -34,6 +45,21 @@ import javaslang.control.Try;
 public class ReflectionUtils {
 
 	private ReflectionUtils() {}
+
+	@SuppressWarnings("unchecked")
+	public static Set<Field> findFields(Class<?> targetClass, Class<?> fieldType) {
+		return findFields(targetClass, withTypeAssignableTo(fieldType));
+	}
+
+	@SuppressWarnings("unchecked")
+	public static Set<Field> findFields(Class<?> targetClass, Class<?> fieldType, Class<? extends Annotation> annotationType) {
+		return findFields(targetClass, withTypeAssignableTo(fieldType), withAnnotation(annotationType));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Set<Field> findFields(Class<?> targetClass, Predicate<? super Field>... filters) {
+		return getAllFields(targetClass, filters);
+	}
 
 	public static void copyFields(Object src, Object target) {
 
@@ -57,14 +83,31 @@ public class ReflectionUtils {
 		return newInstance(clazz, argToInsert, args, toClass(args));
 	}
 
+	public static DelegateInstantiationInfo findDelegateInstantiationInfo(Class<?> clazz, Class<?> delegateType, Class<?>[] otherConstructorParameterTypes) {
+		return rangeClosed(0, otherConstructorParameterTypes.length)
+				.map(i -> new DelegateInstantiationInfo(getMatchingAccessibleConstructor(clazz,
+						List.of(otherConstructorParameterTypes).insert(i, delegateType).toJavaList().stream().toArray(Class<?>[]::new)),
+						i,
+						findFields(clazz, delegateType, Inject.class)))
+				.find(constructorInfo -> constructorInfo.getConstructor() != null)
+				.getOrElse(() -> Try.of(() -> new DelegateInstantiationInfo(getMatchingAccessibleConstructor(clazz, otherConstructorParameterTypes),
+						-1,
+						findFields(clazz, delegateType, Inject.class))).get());
+	}
+
 	public static <T, U> T newInstance(Class<T> clazz, U argToInsert, Object[] args, Class<?>[] argTypes) {
 		return rangeClosed(0, args.length)
-			.map(i -> Try.of(() -> invokeConstructor(clazz,
-					List.of(args).insert(i, argToInsert).toJavaArray(),
-					List.of(argTypes).insert(i, argToInsert.getClass()).toJavaList().stream().toArray(Class<?>[]::new))))
+			.map(i -> Try.of(() -> newInstance(clazz, argToInsert, i, args, argTypes)))
 			.find(Try::isSuccess)
 			.getOrElse(() -> Try.of(() -> invokeConstructor(clazz, args, argTypes)))
 			.get();
+	}
+
+	public static <T, U> T newInstance(Class<T> clazz, U argToInsert, int insertIndex, Object[] args, Class<?>[] argTypes) throws Exception {
+		boolean shouldInsert = insertIndex > -1;
+		return invokeConstructor(clazz,
+				shouldInsert ? List.of(args).insert(insertIndex, argToInsert).toJavaArray() : args,
+				shouldInsert ? List.of(argTypes).insert(insertIndex, argToInsert.getClass()).toJavaList().stream().toArray(Class<?>[]::new) : argTypes);
 	}
 
 	public static Class<?>[] wrapperToPrimitives(Class<?>... wrapperClasses) {
@@ -79,10 +122,33 @@ public class ReflectionUtils {
 	}
 
 	public static <T> T setField(T obj, Field field, Object value) {
-		Try.run(() -> {
-			field.setAccessible(true);
+		return setField(obj, field, value, true);
+	}
+
+	public static <T> T setField(T obj, Field field, Object value, boolean override) {
+		return Try.of(() -> privateSetField(obj, field, value, override)).get();
+	}
+
+	public static <T> T setFields(T obj, Collection<Field> fields, Object value) {
+		return setFields(obj, fields, value, true);
+	}
+
+	public static <T> T setFields(T obj, Collection<Field> fields, Object value, boolean override) {
+		Option.of(fields).peek(fs ->
+			Try.run(() -> {
+				for (Field field : fields) {
+					privateSetField(obj, field, value, override);
+				}
+			})
+		);
+		return obj;
+	}
+
+	private static <T> T privateSetField(T obj, Field field, Object value, boolean override) throws IllegalArgumentException, IllegalAccessException {
+		field.setAccessible(true);
+		if (field.get(obj) == null || override)
 			field.set(obj, value);
-		});
+
 		return obj;
 	}
 
