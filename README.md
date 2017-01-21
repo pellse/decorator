@@ -2,6 +2,8 @@
 
 A library that emulates in Java the Scala's Stackable Trait Pattern
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/decorator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/decorator)
+
 ## License
 
 Copyright 2016 Sebastien Pelletier
