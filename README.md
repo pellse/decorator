@@ -6,7 +6,7 @@ A library that emulates in Java the Scala's Stackable Trait Pattern
 
 ## License
 
-Copyright 2016 Sebastien Pelletier
+Copyright 2017 Sebastien Pelletier
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
