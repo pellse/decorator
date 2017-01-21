@@ -17,7 +17,9 @@ package io.github.pellse.decorator;
 
 import static java.lang.Runtime.getRuntime;
 import static java.util.Collections.synchronizedList;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
@@ -41,6 +43,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.github.pellse.decorator.collection.BoundedList;
@@ -113,14 +116,101 @@ public class DecoratorTest {
 				.with(SafeList.class)
 				.make();
 
-		assertThat(((DelegateProvider<List<String>>)decoratorList).getDelegate(), is(equalTo(list)));
+		assertThat(((DelegateProvider<List<String>>)decoratorList).getDelegate(), equalTo(list));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDecoratorCache() {
+
+		List<Integer> listInteger = Decorator.of(new ArrayList<>(), List.class)
+				.with(SafeList.class)
+				.make();
+
+		listInteger.add(10);
+		listInteger.removeIf(i -> i == 10);
+
+		List<String> listString = Decorator.of(new ArrayList<>(), List.class)
+				.with(SafeList.class)
+				.make();
+
+		listString.add("aaa");
+		listString.remove("aaa");
+
+		assertThat(listInteger, empty());
+		assertThat(listString, empty());
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDecoratorCache2() {
+
+		DirtyList<Integer> listInteger = Decorator.of(new ArrayList<>(), List.class)
+				.with(DirtyList.class)
+				.make();
+
+		DirtyList<String> listString = Decorator.of(new ArrayList<>(), List.class)
+				.with(DirtyList.class)
+				.make();
+
+		DirtyList<String> listEmpty = Decorator.of(new ArrayList<>(), List.class)
+				.with(DirtyList.class)
+				.make();
+
+		listInteger.add(10);
+		listString.add("aaa");
+
+		assertThat(listInteger.isDirty(), is(true));
+		assertThat(listString.isDirty(), is(true));
+		assertThat(listEmpty.isDirty(), is(false));
+
+		assertThat(listInteger, hasItem(10));
+		assertThat(listString, hasItem("aaa"));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDecoratorCache3() {
+
+		List<Integer> listInteger = Decorator.of(new ArrayList<>(), List.class)
+				.with(BoundedList.class, 50)
+				.make();
+
+		List<String> listString = Decorator.of(new ArrayList<>(), List.class)
+				.with(BoundedList.class, 50)
+				.make();
+
+		listInteger.add(10);
+		listString.add("aaa");
+
+		assertThat(listInteger, hasItem(10));
+		assertThat(listString, hasItem("aaa"));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testDecoratorCache4() {
+
+		List<Integer> listInteger = Decorator.of(new ArrayList<>(), List.class)
+				.with(BoundedList2.class, 50)
+				.make();
+
+		List<String> listString = Decorator.of(new ArrayList<>(), List.class)
+				.with(BoundedList2.class, 50)
+				.make();
+
+		listInteger.add(10);
+		listString.add("aaa");
+
+		assertThat(listInteger, hasItem(10));
+		assertThat(listString, hasItem("aaa"));
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testDecoratorWithOneArgumentConstructor() {
 
-		BoundedList<String> boundedList = Decorator.of(new ArrayList<>(), List.class)
+		List<String> boundedList = Decorator.of(new ArrayList<>(), List.class)
 				.with(delegate -> synchronizedList(delegate))
 				.with(SafeList.class)
 				.with(DirtyList.class)
@@ -129,7 +219,7 @@ public class DecoratorTest {
 				.with(BoundedList.class, new Integer(100))
 				.make();
 
-		boundedList.add("aaa");
+		boundedList.add("bbb");
 		boundedList.set(0, "aaa");
 		boolean removed = boundedList.removeIf(s -> s.equals("aaa"));
 
@@ -140,15 +230,15 @@ public class DecoratorTest {
 	@Test(expected = IllegalStateException.class)
 	public void testDecoratorWithBoundedList() {
 
-		BoundedList<String> boundedList = Decorator.of(new ArrayList<>(), List.class)
+		List<String> list = Decorator.of(new ArrayList<>(), List.class)
 				.with(SafeList.class)
 				.with(DirtyList.class)
 				.with(BoundedList.class, 2)
 				.make();
 
-		boundedList.add("aaa");
-		boundedList.add("bbb");
-		boundedList.add("ccc");
+		list.add("aaa");
+		list.add("bbb");
+		list.add("ccc");
 	}
 
 	@SuppressWarnings("unchecked")
@@ -161,14 +251,14 @@ public class DecoratorTest {
 
 		boundedList.add("aaa");
 
-		assertThat(boundedList.getUselessList(), is(nullValue()));
+		assertThat(boundedList.getUselessList(), nullValue());
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testDecoratorWithInvocationHandler() {
 
-		IDirtyList<String> list = Decorator.of(new ArrayList<String>(), List.class)
+		IDirtyList<String> list = Decorator.of(new ArrayList<>(), List.class)
 				.with(SafeList.class)
 				.with(new ForwarderInvocationHandler())
 				.with((delegate, method, args) -> method.invoke(delegate, args))
@@ -178,8 +268,11 @@ public class DecoratorTest {
 				.make();
 
 		list.add("aaa");
+		list.remove("bbb");
+
 		boolean removed = list.removeIf(s -> s.equals("aaa"));
 
+		assertThat(list, empty());
 		assertThat(removed, is(true));
 		assertThat(list.isDirty(), is(true));
 	}
@@ -187,7 +280,7 @@ public class DecoratorTest {
 	@Test
 	public void testDecoratorWithDirectInvocation() {
 
-		List<String> list = Decorator.of(new ArrayList<String>(), List.class)
+		List<Object> list = Decorator.of(new ArrayList<>(), List.class)
 				.with(delegate -> synchronizedList(delegate))
 				.with(delegate -> synchronizedList(delegate))
 				.with(delegate -> synchronizedList(delegate))
@@ -218,7 +311,7 @@ public class DecoratorTest {
 
 		int value = in.readInt();
 
-		assertThat(value, is(equalTo(100)));
+		assertThat(value, equalTo(100));
 		assertThat(in, isA(DataInputStream.class));
 	}
 
@@ -237,7 +330,7 @@ public class DecoratorTest {
 
 		int value = in.readInt();
 
-		assertThat(value, is(equalTo(100)));
+		assertThat(value, equalTo(100));
 		assertThat(in, isA(DataInputStream.class));
 	}
 
@@ -252,7 +345,7 @@ public class DecoratorTest {
 				.make();
 
 		outputList.add(1);
-		assertThat(outputList.get(0), is(equalTo(1)));
+		assertThat(outputList.get(0), equalTo(1));
 	}
 
 	@Test
@@ -267,7 +360,7 @@ public class DecoratorTest {
 		byte[] buffer = new byte[2];
 		in.read(buffer);
 
-		assertThat(buffer, is(equalTo(new byte[]{10, 100})));
+		assertThat(buffer, equalTo(new byte[]{10, 100}));
 	}
 
 	@Test
@@ -282,14 +375,14 @@ public class DecoratorTest {
 		byte[] buffer = new byte[2];
 		in.read(buffer);
 
-		assertThat(buffer, is(equalTo(new byte[]{10, 100})));
+		assertThat(buffer, equalTo(new byte[]{10, 100}));
 	}
 
 	@Test
 	public void testNoDelegateMixin() {
 
-		ArrayList<Integer> inputList = new ArrayList<>();
-		ArrayList<Integer> outputList = Decorator.of(inputList, List.class).make();
+		List<Integer> inputList = new ArrayList<>();
+		List<Integer> outputList = Decorator.of(inputList, List.class).make();
 
 		assertThat(inputList, sameInstance(outputList));
 	}
@@ -303,30 +396,35 @@ public class DecoratorTest {
 				.make();
 
 		list.add("aaa");
-		assertThat(list.get(0), is(equalTo("aaa")));
+		assertThat(list.get(0), equalTo("aaa"));
 	}
 
 	@SuppressWarnings("unchecked")
 	@Test
+	@Ignore
 	public void testDecoratorGC() throws Exception {
 
 		System.gc();
+		Thread.sleep(1000);
+		System.gc();
+
 		long usedMemoryBefore = getRuntime().totalMemory() - getRuntime().freeMemory();
 
-		for (int i = 0; i < 100; i++) {
-			IDirtyList<String> list = Decorator.of(new ArrayList<String>(), List.class)
+		for (int i = 0; i < 10000; i++) {
+			List<String> list = Decorator.of(new ArrayList<>(), List.class)
 					.with(SafeList.class)
-					.with(new ForwarderInvocationHandler())
-					.with((delegate, method, args) -> method.invoke(delegate, args))
+					.with(BoundedList.class, 50)
 					.with(InitializedBoundedList.class)
-					.with(delegate -> synchronizedList((List<String>)delegate))
-					.with(new DirtyListInvocationHandler(), IDirtyList.class)
+					.with(DirtyList.class)
 					.make();
 
 			list.add("aaa");
 		}
 
 		System.gc();
+		Thread.sleep(1000);
+		System.gc();
+
 		long usedMemoryAfter = getRuntime().totalMemory() - getRuntime().freeMemory();
 
 		assertThat(usedMemoryAfter, lessThanOrEqualTo(usedMemoryBefore));
