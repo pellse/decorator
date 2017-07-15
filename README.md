@@ -15,6 +15,7 @@ import java.util.List;
 
 import com.esotericsoftware.kryo.Kryo;
 
+// Inefficient implementation, just for testing purpose
 public interface SafeList<E> extends List<E> {
 	
 	static Kryo kryo = new Kryo();
