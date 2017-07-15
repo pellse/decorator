@@ -95,6 +95,38 @@ DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
 				.make();
 ```
 
+The `@Inject` annotation is also supported:
+```java
+public abstract class DirtyList<E> implements List<E> {
+
+	@Inject
+	private List<E> delegate;
+
+	private boolean isDirty = false;
+
+	public boolean isDirty() {
+		return isDirty;
+	}
+
+	@Override
+	public boolean add(E e) {
+		isDirty = true;
+		return delegate.add(e);
+	}
+
+	...
+}
+```
+
+We can also chain partial components with existing components that fully implement the interface:
+```java
+DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
+				.with(delegate -> Collections.synchronizedList(delegate))
+				.with(SafeList.class)
+				.with(DirtyList.class)
+				.make();
+```
+
 ## License
 
 Copyright 2017 Sebastien Pelletier
