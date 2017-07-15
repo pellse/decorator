@@ -118,6 +118,39 @@ public abstract class DirtyList<E> implements List<E> {
 }
 ```
 
+Partial components can also have non zero argument constructors:
+```java
+public abstract class BoundedList<E> implements List<E> {
+
+	private final int maxNbItems;
+
+	protected abstract List<E> getDelegateList(); // Doesn't need to be getDelegate() from DelegateProvider
+
+	public PartialBoundedList(int maxNbItems) {
+		this.maxNbItems = maxNbItems;
+	}
+
+	@Override
+	public boolean add(E e) {
+		checkSize(1);
+		return getDelegateList().add(e);
+	}
+
+	protected void checkSize(int addCount) {
+		if (getDelegateList().size() + addCount >= maxNbItems)
+			throw new IllegalStateException("Size of list greater than maxNbItems (" + maxNbItems + ")");
+	}
+}
+
+DirtyList<String> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
+				.with(SafeList.class)
+				.with(BoundedList.class)
+					.params(50)
+					.paramTypes(int.class)
+				.with(DirtyList.class)
+				.make();
+```
+
 We can also chain partial components with existing components that fully implement the interface:
 ```java
 DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
