@@ -179,7 +179,7 @@ Which is the equivalent of:
 DataInputStream din = new DataInputStream(new BufferedInputStream(new FileInputStream("data.txt"), 50));
 ```
 
-And we can mix dynamic proxy component:
+And we can mix dynamic proxy components:
 ```java
 DirtyList<String> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
 	.with(SafeList.class)
