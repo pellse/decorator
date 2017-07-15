@@ -15,11 +15,13 @@ import java.util.List;
 
 import com.esotericsoftware.kryo.Kryo;
 
-// Inefficient implementation, just for testing purpose
+// Inefficient implementation and null checks were omitted, just for testing purpose
 public interface SafeList<E> extends List<E> {
 	
 	static Kryo kryo = new Kryo();
 	
+	// The framework will automatically implement this method.
+	// The return type is inspected so the actual method name doesn't matter.
 	List<E> getDelegate();
 
 	@Override
@@ -47,7 +49,7 @@ public interface SafeList<E> extends List<E> {
 		return getDelegate().set(index, clone(e));
 	}
 
-	public static <E> E clone(E obj) {
+	static <E> E clone(E obj) {
 		return kryo.copy(obj);
 	}
 }
