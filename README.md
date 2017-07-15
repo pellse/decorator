@@ -1,12 +1,12 @@
 # Decorator
 
-A library that emulates in Java the Scala's Stackable Trait Pattern
+A library that emulates in Java the Scala's Stackable Trait Pattern by implementing the decorator pattern at runtime through class composition instead of only through object composition. The goal is to allow the creation of very small partial components (i.e. partial implementation of interfaces or abstract classes) that can be dynamically assembled into full components.
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/decorator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/decorator)
 
 ## Usage Examples
 
-This example shows how to create a component by extending an interface and only implement the necessary methods, the framework will  automatically generate the unimplemented pass through delegate methods. The framework will use the provided delegate method signature as an injection point for the delegate class instance to which forward methods:
+This example shows how to create a component by extending an interface and only implement the necessary methods, the framework will  automatically generate the unimplemented pass through delegate methods. The framework will use the provided delegate method signature as an injection point for the delegate class instance to which we should forward methods to:
 ```java
 import java.util.Collection;
 import java.util.List;
@@ -54,7 +54,7 @@ SafeList<String> decoratorList = Decorator.of(new ArrayList<>(), List.class)
 				.make();
 ```
 
-It is also possible to create a partial component by providing an abstract class that implement only the methods that needs to be overriden (some methods were removed for brevity), the framework will use the provided constructor to inject the appropriate delegate:
+It is also possible to create a partial component by providing an abstract class that implement only the methods that need to be overriden (some methods were removed for brevity), the framework will use the provided constructor to inject the appropriate delegate:
 ```java
 public abstract class DirtyList<E> implements List<E> {
 
