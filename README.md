@@ -200,17 +200,13 @@ public class DirtyListInvocationHandler<T> implements DelegateInvocationHandler<
 
 	private boolean isDirty;
 
-	public boolean isDirty() {
-		return isDirty;
-	}
-
 	@Override
 	public Object invoke(T delegate, Method method, Object[] args) throws Throwable {
-		if (Stream.of("add", "remove", "set", "clear", "retain").anyMatch(s -> method.getName().startsWith(s)))
-			isDirty = true;
-
 		if (method.getName().equals("isDirty"))
 			return isDirty;
+			
+		if (Stream.of("add", "remove", "set", "clear", "retain").anyMatch(s -> method.getName().startsWith(s)))
+			isDirty = true;
 
 		return method.invoke(delegate, args);
 	}
