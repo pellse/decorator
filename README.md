@@ -124,7 +124,7 @@ public abstract class BoundedList<E> implements List<E> {
 
 	private final int maxNbItems;
 
-	protected abstract List<E> getDelegateList(); // Doesn't need to be getDelegate() from DelegateProvider
+	protected abstract List<E> getDelegateList();
 
 	public BoundedList(int maxNbItems) {
 		this.maxNbItems = maxNbItems;
