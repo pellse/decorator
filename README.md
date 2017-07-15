@@ -126,7 +126,7 @@ public abstract class BoundedList<E> implements List<E> {
 
 	protected abstract List<E> getDelegateList(); // Doesn't need to be getDelegate() from DelegateProvider
 
-	public PartialBoundedList(int maxNbItems) {
+	public BoundedList(int maxNbItems) {
 		this.maxNbItems = maxNbItems;
 	}
 
@@ -156,6 +156,18 @@ We can also chain partial components with existing components that fully impleme
 DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
 				.with(delegate -> Collections.synchronizedList(delegate))
 				.with(SafeList.class)
+				.with(DirtyList.class)
+				.make();
+```
+
+And we can mix dynamic proxy like component:
+```java
+DirtyList<String> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
+				.with(SafeList.class)
+				.with(BoundedList.class)
+					.params(50)
+					.paramTypes(int.class)
+				.with((delegate, method, args) -> method.invoke(delegate, args))
 				.with(DirtyList.class)
 				.make();
 ```
