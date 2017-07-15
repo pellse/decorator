@@ -158,7 +158,7 @@ DirtyList<String> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
 	.make();
 ```
 
-We can also chain partial components with existing components that fully implement the specified interface:
+We can also chain partial components with existing decorators that fully implement the specified interface:
 ```java
 DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
 	.with(delegate -> Collections.synchronizedList(delegate))
