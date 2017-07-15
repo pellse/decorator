@@ -1,6 +1,8 @@
 # Decorator
 
-A library that emulates in Java the Scala's Stackable Trait Pattern by implementing the decorator pattern at runtime through class composition instead of only through object composition. The goal is to allow the creation of very small partial components (i.e. partial implementation of interfaces or abstract classes) that can be dynamically assembled into full components.
+A library that emulates in Java the Scala's Stackable Trait Pattern by implementing the decorator pattern at runtime through class composition instead of only through object composition. The goal is to allow the creation of very small partial components (i.e. partial implementation of interfaces or abstract classes) that can be dynamically assembled into full components at runtime.
+
+The library can also be used to mix and chain aop style decorators with partial components, and also as a more elegant way to chain fully implemented or existing decorators.
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/decorator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.github.pellse/decorator)
 
@@ -158,6 +160,18 @@ DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
 				.with(SafeList.class)
 				.with(DirtyList.class)
 				.make();
+```
+
+This is another example using the fluent api as syntactic sugar to chain already fully implemented decorators instead of embedding layers of constructor parameter calls:
+```java
+DataInputStream din = DecoratorBuilder.of(new FileInputStream("data.txt"), InputStream.class)
+				.with(delegate -> new BufferedInputStream(delegate, 50))
+				.with(delegate -> new DataInputStream(delegate))
+				.make();
+```
+Which is the equivalent of:
+```java
+DataInputStream din = new DataInputStream(new BufferedInputStream(new FileInputStream("data.txt"), 50));
 ```
 
 And we can mix dynamic proxy like component:
