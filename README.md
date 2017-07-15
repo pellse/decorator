@@ -53,8 +53,8 @@ public interface SafeList<E> extends List<E> {
 }
 
 SafeList<String> decoratorList = Decorator.of(new ArrayList<>(), List.class)
-				.with(SafeList.class)
-				.make();
+	.with(SafeList.class)
+	.make();
 ```
 
 It is also possible to create a partial component by providing an abstract class that implement only the methods that need to be overriden (some methods were removed for brevity), the framework will use the provided constructor to inject the appropriate delegate:
@@ -93,9 +93,9 @@ public abstract class DirtyList<E> implements List<E> {
 }
 
 DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
-				.with(SafeList.class)
-				.with(DirtyList.class)
-				.make();
+	.with(SafeList.class)
+	.with(DirtyList.class)
+	.make();
 ```
 
 The `@Inject` annotation is also supported:
@@ -138,6 +138,8 @@ public abstract class BoundedList<E> implements List<E> {
 		checkSize(1);
 		return getDelegateList().add(e);
 	}
+	
+	// addAll(), remove(), etc. were not implemented here for brevity
 
 	protected void checkSize(int addCount) {
 		if (getDelegateList().size() + addCount >= maxNbItems)
@@ -146,29 +148,29 @@ public abstract class BoundedList<E> implements List<E> {
 }
 
 DirtyList<String> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
-				.with(SafeList.class)
-				.with(BoundedList.class)
-					.params(50)
-					.paramTypes(int.class)
-				.with(DirtyList.class)
-				.make();
+	.with(SafeList.class)
+	.with(BoundedList.class)
+		.params(50)
+		.paramTypes(int.class)
+	.with(DirtyList.class)
+	.make();
 ```
 
 We can also chain partial components with existing components that fully implement the specified interface:
 ```java
 DirtyList<String> dirtyList = Decorator.of(new ArrayList<>(), List.class)
-				.with(delegate -> Collections.synchronizedList(delegate))
-				.with(SafeList.class)
-				.with(DirtyList.class)
-				.make();
+	.with(delegate -> Collections.synchronizedList(delegate))
+	.with(SafeList.class)
+	.with(DirtyList.class)
+	.make();
 ```
 
 This is another example using the fluent api as syntactic sugar to chain already fully implemented decorators instead of embedding layers of constructor parameter calls:
 ```java
 DataInputStream din = DecoratorBuilder.of(new FileInputStream("data.txt"), InputStream.class)
-				.with(delegate -> new BufferedInputStream(delegate, 50))
-				.with(delegate -> new DataInputStream(delegate))
-				.make();
+	.with(delegate -> new BufferedInputStream(delegate, 50))
+	.with(delegate -> new DataInputStream(delegate))
+	.make();
 ```
 Which is the equivalent of:
 ```java
@@ -178,13 +180,45 @@ DataInputStream din = new DataInputStream(new BufferedInputStream(new FileInputS
 And we can mix dynamic proxy component:
 ```java
 DirtyList<String> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
-				.with(SafeList.class)
-				.with(BoundedList.class)
-					.params(50)
-					.paramTypes(int.class)
-				.with((delegate, method, args) -> method.invoke(delegate, args))
-				.with(DirtyList.class)
-				.make();
+	.with(SafeList.class)
+	.with(BoundedList.class)
+		.params(50)
+		.paramTypes(int.class)
+	.with((delegate, method, args) -> method.invoke(delegate, args))
+	.with(DirtyList.class)
+	.make();
+```
+
+```java
+public interface IDirtyList<E> extends List<E> {
+	boolean isDirty();
+}
+
+public class DirtyListInvocationHandler<T> implements DelegateInvocationHandler<T> {
+
+	private boolean isDirty;
+
+	public boolean isDirty() {
+		return isDirty;
+	}
+
+	@Override
+	public Object invoke(T delegate, Method method, Object[] args) throws Throwable {
+		if (Stream.of("add", "remove", "set", "clear", "retain").anyMatch(s -> method.getName().startsWith(s)))
+			isDirty = true;
+
+		if (method.getName().equals("isDirty"))
+			return isDirty;
+
+		return method.invoke(delegate, args);
+	}
+}
+
+IDirtyList<EmptyClass> dirtyList = DecoratorBuilder.of(new ArrayList<>(), List.class)
+	.with(SafeList.class)
+	.with(new DirtyListInvocationHandler<>())
+		.as(IDirtyList.class)
+	.make();
 ```
 
 ## License
