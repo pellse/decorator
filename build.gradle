@@ -11,6 +11,7 @@ dependencies {
     compile 'net.bytebuddy:byte-buddy:1.6.1'
     compile 'org.reflections:reflections:0.9.10'
     compile 'org.apache.commons:commons-lang3:3.5'
+    compile 'com.google.guava:guava:21.0'
     compile 'io.javaslang:javaslang:2.0.4'
     compile 'org.jctools:jctools-core:2.0'
     compile 'javax.inject:javax.inject:1'

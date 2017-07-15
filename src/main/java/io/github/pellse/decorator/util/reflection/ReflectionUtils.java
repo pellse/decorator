@@ -44,7 +44,8 @@ import javaslang.control.Try;
 
 public class ReflectionUtils {
 
-	private ReflectionUtils() {}
+	private ReflectionUtils() {
+	}
 
 	@SuppressWarnings("unchecked")
 	public static Set<Field> findFields(Class<?> targetClass, Class<?> fieldType) {
@@ -67,8 +68,7 @@ public class ReflectionUtils {
 		do {
 			stream(targetClass.getDeclaredFields()).forEach(field -> Try.run(() -> field.set(target, field.get(src))).get());
 			targetClass = targetClass.getSuperclass();
-		}
-		while (targetClass != null && targetClass != Object.class);
+		} while (targetClass != null && targetClass != Object.class);
 	}
 
 	public static <T> T newInstance(Class<T> clazz) {
@@ -89,36 +89,30 @@ public class ReflectionUtils {
 						List.of(otherConstructorParameterTypes).insert(i, delegateType).toJavaList().stream().toArray(Class<?>[]::new)),
 						i,
 						findFields(clazz, delegateType, Inject.class)))
-				.find(constructorInfo -> constructorInfo.getConstructor() != null)
+				.find(dii -> dii.getConstructor() != null)
 				.getOrElse(() -> Try.of(() -> new DelegateInstantiationInfo(getMatchingAccessibleConstructor(clazz, otherConstructorParameterTypes),
 						-1,
 						findFields(clazz, delegateType, Inject.class))).get());
 	}
 
 	public static <T, U> T newInstance(Class<T> clazz, U argToInsert, Object[] args, Class<?>[] argTypes) {
-		return rangeClosed(0, args.length)
-			.map(i -> Try.of(() -> newInstance(clazz, argToInsert, i, args, argTypes)))
-			.find(Try::isSuccess)
-			.getOrElse(() -> Try.of(() -> invokeConstructor(clazz, args, argTypes)))
-			.get();
+		return rangeClosed(0, args.length).map(i -> Try.of(() -> newInstance(clazz, argToInsert, i, args, argTypes))).find(Try::isSuccess).getOrElse(
+				() -> Try.of(() -> invokeConstructor(clazz, args, argTypes))).get();
 	}
 
 	public static <T, U> T newInstance(Class<T> clazz, U argToInsert, int insertIndex, Object[] args, Class<?>[] argTypes) throws Exception {
 		boolean shouldInsert = insertIndex > -1;
-		return invokeConstructor(clazz,
-				shouldInsert ? List.of(args).insert(insertIndex, argToInsert).toJavaArray() : args,
+		return invokeConstructor(clazz, shouldInsert ? List.of(args).insert(insertIndex, argToInsert).toJavaArray() : args,
 				shouldInsert ? List.of(argTypes).insert(insertIndex, argToInsert.getClass()).toJavaList().stream().toArray(Class<?>[]::new) : argTypes);
 	}
 
 	public static Class<?>[] wrapperToPrimitives(Class<?>... wrapperClasses) {
-		return stream(wrapperClasses)
-			.map(ReflectionUtils::wrapperToPrimitive)
-			.toArray(Class<?>[]::new);
+		return stream(wrapperClasses).map(ReflectionUtils::wrapperToPrimitive).toArray(Class<?>[]::new);
 	}
 
 	@SuppressWarnings("unchecked")
 	public static <T> Class<T> wrapperToPrimitive(Class<T> wrapperClass) {
-		return Option.of((Class<T>)ClassUtils.wrapperToPrimitive(wrapperClass)).getOrElse(wrapperClass);
+		return Option.of((Class<T>) ClassUtils.wrapperToPrimitive(wrapperClass)).getOrElse(wrapperClass);
 	}
 
 	public static <T> T setField(T obj, Field field, Object value) {
@@ -134,13 +128,11 @@ public class ReflectionUtils {
 	}
 
 	public static <T> T setFields(T obj, Collection<Field> fields, Object value, boolean override) {
-		Option.of(fields).peek(fs ->
-			Try.run(() -> {
-				for (Field field : fields) {
-					privateSetField(obj, field, value, override);
-				}
-			})
-		);
+		Try.run(() -> {
+			for (Field field : fields) {
+				privateSetField(obj, field, value, override);
+			}
+		});
 		return obj;
 	}
 
@@ -153,11 +145,10 @@ public class ReflectionUtils {
 	}
 
 	public static Optional<Object> getField(Object obj, Field field) {
-		return Optional.ofNullable(
-				Try.of(() -> {
-					field.setAccessible(true);
-					return field.get(obj);
-				}).get());
+		return Optional.ofNullable(Try.of(() -> {
+			field.setAccessible(true);
+			return field.get(obj);
+		}).get());
 	}
 
 	public static Object invoke(Object obj, String methodName, Object... args) {

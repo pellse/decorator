@@ -90,6 +90,8 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 				new Class<?>[] {generatedType},
 				(proxy, method, args) -> handler.invoke(delegateTarget, method, args));
 
+		// TODO: Implement caching of generated proxy when proxying a class instead of an interface
+		// This should be a very infrequent case, so not urgent to fix
 		Class<D> delegateClass = generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,

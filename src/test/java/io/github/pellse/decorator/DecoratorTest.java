@@ -215,7 +215,7 @@ public class DecoratorTest {
 				.with(SafeList.class)
 				.with(DirtyList.class)
 				.with(BoundedList.class, 50)
-				.with(delegate -> synchronizedList((BoundedList<String>)delegate))
+				.with(delegate -> synchronizedList((List<String>)delegate))
 				.with(BoundedList.class, new Integer(100))
 				.make();
 

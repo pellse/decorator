@@ -20,7 +20,6 @@ import static io.github.pellse.decorator.util.reflection.ReflectionUtils.setFiel
 import static org.apache.commons.lang3.ClassUtils.toClass;
 
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -88,9 +87,11 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 	@Override
 	public <D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
-
-		BiFunction<Class<D>, T, D> instanceCreator = (type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes);
-		return with(() -> generator.generateDelegate(delegateTarget, generatedType, commonDelegateType, instanceCreator, classLoader));
+		return with(() -> generator.generateDelegate(delegateTarget,
+				generatedType,
+				commonDelegateType,
+				(type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes),
+				classLoader));
 	}
 
 	@Override
@@ -106,6 +107,8 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	@SuppressWarnings("unchecked")
 	private <D extends I> D createInstance(Class<D> type, T delegateTarget, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
 
+		// TODO: create DelegateInstantiator interface
+		// that will encapsulate the creation of the decorator
 		DelegateInstantiationInfo delegateInstantiationInfo = CACHE.computeIfAbsent(type,
 				clazz -> findDelegateInstantiationInfo(clazz, commonDelegateType, constructorArgTypes));
 
