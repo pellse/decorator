@@ -24,7 +24,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import io.github.pellse.decorator.Decorator;
 import io.github.pellse.decorator.aop.DelegateInvocationFilter;
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
-import javaslang.control.Option;
 
 public interface DecoratorBuilder {
 
@@ -125,7 +124,7 @@ public interface DecoratorBuilder {
 
 		@Override
 		Decorator<I, D> generateDecorator() {
-			return getDecorator().with(getTypeToGenerate(), parameters, Option.of(parameterTypes).getOrElse(() -> toClass(parameters)));
+			return getDecorator().with(getTypeToGenerate(), parameters, parameterTypes != null ? parameterTypes : toClass(parameters));
 		}
 	}
 

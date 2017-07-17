@@ -23,16 +23,16 @@ import java.util.List;
 import com.esotericsoftware.kryo.Kryo;
 
 public interface SafeList<E> extends List<E> {
-	
+
 	static Kryo kryo = new Kryo();
-	
+
 	List<E> getDelegate();
 
 	@Override
 	default boolean add(E e) {
 		return getDelegate().add(clone(e));
 	}
-	
+
 	@Override
 	default void add(int index, E e) {
 		getDelegate().add(index, clone(e));
@@ -53,7 +53,7 @@ public interface SafeList<E> extends List<E> {
 		return getDelegate().set(index, clone(e));
 	}
 
-	public static <E> E clone(E obj) {
+	static <E> E clone(E obj) {
 		return kryo.copy(obj);
 	}
 }

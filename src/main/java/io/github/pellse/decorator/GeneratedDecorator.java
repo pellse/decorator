@@ -20,6 +20,8 @@ import static io.github.pellse.decorator.util.reflection.ReflectionUtils.setFiel
 import static org.apache.commons.lang3.ClassUtils.toClass;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -28,10 +30,10 @@ import org.jctools.maps.NonBlockingHashMap;
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 import io.github.pellse.decorator.proxy.DelegateGenerator;
 import io.github.pellse.decorator.proxy.bytebuddy.ByteBuddyClassDelegateGenerator;
+import io.github.pellse.decorator.util.function.CheckedBiFunction;
+import io.github.pellse.decorator.util.function.CheckedSupplier;
 import io.github.pellse.decorator.util.reflection.DelegateInstantiationInfo;
-import javaslang.collection.List;
-import javaslang.control.Option;
-import javaslang.control.Try;
+import io.github.pellse.decorator.util.reflection.ReflectionUtils;
 
 public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> {
 
@@ -61,7 +63,7 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 		super(next);
 		this.delegateTarget = delegateTarget;
 		this.commonDelegateType = commonDelegateType;
-		this.generator = Option.of(generator).getOrElse(ByteBuddyClassDelegateGenerator<I>::new);
+		this.generator = Optional.ofNullable(generator).orElseGet(ByteBuddyClassDelegateGenerator<I>::new);
 		this.classLoader = classLoader;
 	}
 
@@ -72,7 +74,7 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 	@Override
 	public <D extends I> Decorator<I, D> with(DelegateInvocationHandler<I> delegateHandler, Class<D> generatedType) {
-		return with(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType, classLoader));
+		return with(CheckedSupplier.of(() -> generator.generateDelegate(delegateTarget, delegateHandler, generatedType, commonDelegateType, classLoader)));
 	}
 
 	@Override
@@ -87,11 +89,14 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 
 	@Override
 	public <D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
-		return with(() -> generator.generateDelegate(delegateTarget,
+		BiFunction<Class<D>, T, D> delegateSupplier = CheckedBiFunction.of(
+				(type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes));
+
+		return with(CheckedSupplier.of(() -> generator.generateDelegate(delegateTarget,
 				generatedType,
 				commonDelegateType,
-				(type, delegateTarget) -> createInstance(type, delegateTarget, constructorArgs, constructorArgTypes),
-				classLoader));
+				delegateSupplier,
+				classLoader)));
 	}
 
 	@Override
@@ -105,18 +110,16 @@ public class GeneratedDecorator<I, T extends I> extends AbstractDecorator<I, T> 
 	}
 
 	@SuppressWarnings("unchecked")
-	private <D extends I> D createInstance(Class<D> type, T delegateTarget, Object[] constructorArgs, Class<?>[] constructorArgTypes) {
+	private <D extends I> D createInstance(Class<D> type, T delegateTarget, Object[] constructorArgs, Class<?>[] constructorArgTypes) throws Exception {
 
 		// TODO: create DelegateInstantiator interface
 		// that will encapsulate the creation of the decorator
 		DelegateInstantiationInfo delegateInstantiationInfo = CACHE.computeIfAbsent(type,
 				clazz -> findDelegateInstantiationInfo(clazz, commonDelegateType, constructorArgTypes));
 
-		Object[] args = delegateInstantiationInfo.getParameterToInsertIndex() > -1
-				? List.of(constructorArgs).insert(delegateInstantiationInfo.getParameterToInsertIndex(), delegateTarget).toJavaArray()
-				: constructorArgs;
+		Object[] args = ReflectionUtils.insert(constructorArgs, delegateInstantiationInfo.getParameterToInsertIndex(), delegateTarget);
 
-		D instance = (D) Try.of(() -> delegateInstantiationInfo.getConstructor().newInstance(args)).get();
+		D instance = (D) delegateInstantiationInfo.getConstructor().newInstance(args);
 		setFields(instance, delegateInstantiationInfo.getInjectableFields(), delegateTarget, false);
 
 		return instance;

@@ -26,6 +26,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -34,8 +35,7 @@ import org.jctools.maps.NonBlockingHashMap;
 import io.github.pellse.decorator.DelegateProvider;
 import io.github.pellse.decorator.aop.DelegateInvocationHandler;
 import io.github.pellse.decorator.proxy.DelegateGenerator;
-import javaslang.control.Option;
-import javaslang.control.Try;
+import io.github.pellse.decorator.util.function.CheckedSupplier;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.dynamic.DynamicType.Builder;
 import net.bytebuddy.dynamic.DynamicType.Builder.MethodDefinition.ReceiverTypeDefinition;
@@ -71,7 +71,7 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 			delegateTarget);
 
 		if (generatedInstance.getClass() != generatedType)
-			setField(generatedInstance, Try.of(() -> generatedInstance.getClass().getDeclaredField(DELEGATE_FIELD_NAME)).get(), delegateTarget);
+			setField(generatedInstance, CheckedSupplier.of(() -> generatedInstance.getClass().getDeclaredField(DELEGATE_FIELD_NAME)).get(), delegateTarget);
 
 		return generatedInstance;
 	}
@@ -113,14 +113,14 @@ public class ByteBuddyClassDelegateGenerator<I> implements DelegateGenerator<I> 
 				byteBuddy.subclass(Object.class).implement(generatedType) :
 				byteBuddy.subclass(generatedType);
 
-		return Try.of(() -> {
+		return CheckedSupplier.of(() -> {
 			return (Class<D>) builderFactory.andThen(interceptStrategy).apply(new ByteBuddy())
 				.defineField(DELEGATE_FIELD_NAME, commonDelegateType, Modifier.PRIVATE)
 				.implement(DelegateProvider.class)
 				.method(isAbstract().and(isGetter(commonDelegateType).or(isDeclaredBy(DelegateProvider.class))))
 					.intercept(FieldAccessor.ofField(DELEGATE_FIELD_NAME))
 				.make()
-				.load(Option.of(classLoader).getOrElse(ByteBuddyClassDelegateGenerator.class.getClassLoader()), ClassLoadingStrategy.Default.INJECTION)
+				.load(Optional.ofNullable(classLoader).orElse(ByteBuddyClassDelegateGenerator.class.getClassLoader()), ClassLoadingStrategy.Default.INJECTION)
 				.getLoaded();
 		}).get();
 	}
