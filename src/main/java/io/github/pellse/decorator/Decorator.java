@@ -34,7 +34,7 @@ public interface Decorator<I, T extends I> {
 	<D extends I> Decorator<I, D> with(Class<D> generatedType, Object[] constructorArgs, Class<?>[] constructorArgTypes);
 	<D extends I> Decorator<I, D> with(Supplier<D> delegateSupplier);
 
-	T make();
+	<R extends I> R make();
 
 	static <I, T extends I> Decorator<I, T> of(T rootObject, Class<I> delegateInterface) {
 		return of(rootObject, delegateInterface, new ByteBuddyClassDelegateGenerator<>());
