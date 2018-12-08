@@ -54,6 +54,7 @@ public interface SafeList<E> extends List<E> {
 	}
 
 	static <E> E clone(E obj) {
+		kryo.register(obj.getClass());
 		return kryo.copy(obj);
 	}
 }
